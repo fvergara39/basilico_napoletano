@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F4F4F8">
+<title>Basilico a Napoli</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+:root{
+  --bg:#F4F4F8; --surface:#FFFFFF; --surface2:#EBEAF2; --ink:#1E1B33; --muted:#6C6883; --line:#DCDAE6;
+  --movie:#5B3CC4; --restaurant:#B4235A; --place:#0E7C86; --star:#F2B705; --star-off:#D6D3E2;
+  --sea:#C6DDF0; --land:#F3F1EC; --border:#A9BFD3; --danger:#B42318;
+  --urban:#E7E2D8; --water-line:#9CC3E3; --road-major:#F6C86E; --road-major-case:#DDA545; --road-minor:#FFFFFF; --road-minor-case:#D6D0C6; --admin:#B3ABC2; --admin-faint:#D4CFDC; --label:#47425C; --label-halo:#FFFFFF;
+  --shadow:0 1px 2px rgba(30,27,51,.06),0 8px 24px rgba(30,27,51,.08);
+  --display:"Bricolage Grotesque",ui-rounded,"Segoe UI",system-ui,sans-serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15131F; --surface:#1F1C2C; --surface2:#282437; --ink:#EEEAF8; --muted:#A39EB8; --line:#363149;
+    --movie:#9C84F0; --restaurant:#EE6A98; --place:#3BC2CC; --star:#F5C431; --star-off:#4A445E;
+    --sea:#1A2836; --land:#262532; --border:#34465A; --danger:#F97066;
+    --urban:#2F2D3B; --water-line:#2E4B66; --road-major:#9A7432; --road-major-case:#5E4620; --road-minor:#4B4859; --road-minor-case:#2F2C3A; --admin:#5C5672; --admin-faint:#3A3648; --label:#D2CDE0; --label-halo:#15131F;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15131F; --surface:#1F1C2C; --surface2:#282437; --ink:#EEEAF8; --muted:#A39EB8; --line:#363149;
+  --movie:#9C84F0; --restaurant:#EE6A98; --place:#3BC2CC; --star:#F5C431; --star-off:#4A445E;
+  --sea:#1A2836; --land:#262532; --border:#34465A; --danger:#F97066;
+    --urban:#2F2D3B; --water-line:#2E4B66; --road-major:#9A7432; --road-major-case:#5E4620; --road-minor:#4B4859; --road-minor-case:#2F2C3A; --admin:#5C5672; --admin-faint:#3A3648; --label:#D2CDE0; --label-halo:#15131F;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.3);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--movie);outline-offset:2px}
+.app{max-width:960px;margin:0 auto;padding:0 16px 96px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 0 8px}
+.brand{font:800 clamp(28px,6vw,40px)/1 var(--display);letter-spacing:-.02em;margin:0}
+.brand span{display:inline-block}
+.brand button{all:unset;cursor:text;border-radius:8px}
+.brand button:focus-visible{outline:2px solid var(--movie);outline-offset:2px}
+.brand input{font:inherit;letter-spacing:inherit;width:100%;border:0;border-bottom:2px solid var(--line);background:none;color:inherit;padding:0;outline:none}
+.people{display:flex;align-items:center}
+.people img{width:32px;height:32px;border-radius:50%;border:2px solid var(--bg);margin-left:-8px;background:var(--surface2)}
+.people img:first-child{margin-left:0}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center}
+nav.tabs .inner{display:flex;gap:2px;width:100%;max-width:640px}
+nav.tabs button{flex:1;border:0;background:none;padding:6px 2px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--muted)}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button[aria-selected="true"]{color:var(--tab,var(--ink));background:var(--surface2)}
+@media (min-width:760px){
+  nav.tabs{position:sticky;top:0;bottom:auto;border:0;border-bottom:1px solid var(--line);background:var(--bg);padding:8px 0;top:env(safe-area-inset-top,0px)}
+  nav.tabs .inner{max-width:none}
+  nav.tabs button{flex:0 0 auto;flex-direction:row;gap:8px;padding:8px 14px;font-size:15px}
+  nav.tabs button svg{width:20px;height:20px}
+  .app{padding-bottom:48px}
+}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 12px}
+.toolbar h2{font:700 26px/1.1 var(--display);margin:0 auto 0 0;letter-spacing:-.01em;color:var(--sec)}
+.search{flex:1 1 180px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.seg{display:inline-flex;background:var(--surface2);border-radius:12px;padding:3px}
+.seg button{border:0;background:none;padding:6px 10px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+select.sort{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:14px}
+
+.list{display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:760px){.list{grid-template-columns:1fr 1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--sec);border-radius:14px;padding:14px 14px 12px;text-align:left;width:100%;display:block}
+.card:hover{border-color:var(--sec)}
+.card .t{font:700 19px/1.2 var(--display);margin:0 0 2px}
+.card .m{color:var(--muted);font-size:14px;margin:0 0 10px}
+.status{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--surface2);color:var(--muted);margin-left:6px;vertical-align:2px}
+.status.done{background:color-mix(in srgb,var(--sec) 16%,transparent);color:var(--sec)}
+.rrow{display:flex;align-items:flex-start;gap:8px;margin-top:6px;font-size:14px}
+.rrow img{width:22px;height:22px;border-radius:50%;flex:none;margin-top:1px}
+.rrow .c{color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.rrow .none{color:var(--muted);font-style:italic}
+.stars{display:inline-flex;gap:1px;flex:none;line-height:1}
+.stars svg{width:16px;height:16px}
+
+.empty{background:var(--surface);border:1px dashed var(--border);border-radius:16px;padding:28px 20px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);font:700 20px/1.2 var(--display);margin-bottom:6px}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-weight:600;background:var(--surface2);color:var(--ink)}
+.btn.primary{background:var(--sec,var(--movie));color:#fff}
+.btn.ghost{background:none;border:1px solid var(--line)}
+.btn.danger{background:none;color:var(--danger);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:default}
+.fab{position:fixed;right:max(16px,calc(50% - 464px));bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:15;border:0;border-radius:18px;
+  background:var(--sec);color:#fff;font:700 16px var(--display);padding:14px 20px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+@media (min-width:760px){.fab{bottom:calc(24px + env(safe-area-inset-bottom,0px))}}
+.notice{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;color:var(--muted);margin:12px 0}
+
+/* map */
+.mapwrap{position:relative;height:calc(100vh - 260px);min-height:380px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--sea)}
+.mapwrap canvas{display:block;width:100%;height:100%;touch-action:none}
+.mapctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.mapctl button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:20px;font-weight:600;box-shadow:var(--shadow);display:grid;place-items:center}
+.maphint{position:absolute;left:10px;bottom:10px;right:60px;font-size:12px;color:var(--muted);pointer-events:none}
+.legend{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 12px;font-size:14px;font-weight:600}
+.chip[aria-pressed="false"]{opacity:.45}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+
+/* stats */
+.stats{display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:760px){.stats{grid-template-columns:1fr 1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.panel h3{font:700 18px/1.2 var(--display);margin:0 0 12px}
+.panel.wide{grid-column:1/-1}
+.tally{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tally div{border-radius:12px;padding:12px;background:color-mix(in srgb,var(--c) 10%,transparent)}
+.tally b{display:block;font:800 30px/1 var(--display);color:var(--c)}
+.tally span{font-size:13px;color:var(--muted)}
+.prow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.prow:first-of-type{border-top:0}
+.prow img{width:28px;height:28px;border-radius:50%}
+.prow .n{font-weight:600;flex:1;min-width:0}
+.prow .v{font:700 18px var(--display)}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:28px 1fr 30px;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.bar .track{height:12px;background:var(--surface2);border-radius:6px;overflow:hidden;display:flex}
+.bar .track i{display:block;height:100%}
+.toplist{list-style:none;margin:0;padding:0}
+.toplist li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.toplist li:first-child{border-top:0}
+.toplist button{background:none;border:0;padding:0;text-align:left;font-weight:600;color:var(--ink)}
+.toplist .sub{color:var(--muted);white-space:nowrap}
+.big{font:800 40px/1 var(--display)}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(15,12,30,.45);z-index:40;display:none}
+.scrim.open{display:block}
+.sheet{position:fixed;z-index:41;left:0;right:0;bottom:0;max-height:92vh;overflow:auto;background:var(--bg);
+  border-radius:20px 20px 0 0;padding:8px 18px calc(24px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform .25s ease;visibility:hidden}
+.sheet.open{transform:none;visibility:visible}
+@media (min-width:760px){.sheet{left:50%;right:auto;width:600px;margin-left:-300px;bottom:auto;top:6vh;max-height:88vh;border-radius:20px;transform:translateY(20px);opacity:0;transition:opacity .2s,transform .2s}
+  .sheet.open{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.sheet{transition:none}}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.sheet h2{font:800 28px/1.1 var(--display);margin:4px 0 6px;letter-spacing:-.01em}
+.shead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.x{border:0;background:var(--surface2);width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;flex:none}
+.field{display:block;margin:12px 0}
+.field>span{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
+.field input,.field textarea,.field select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.field textarea{min-height:80px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.locbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:4px}
+.locbox .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.locbox .btns .btn{padding:7px 12px;font-size:14px}
+.okloc{font-size:13px;margin-top:6px}
+.err{color:var(--danger)}
+.rate-edit{display:flex;gap:4px;margin:6px 0}
+.rate-edit button{border:0;background:none;padding:2px}
+.rate-edit svg{width:34px;height:34px}
+.myrate{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin:14px 0}
+.myrate h3,.others h3{font:700 17px var(--display);margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.myrate h3 img,.others h3 img{width:24px;height:24px;border-radius:50%}
+.others{margin:14px 0}
+.others .o{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}
+.others p{margin:6px 0 0;white-space:pre-wrap}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.minimap{height:300px;border-radius:12px;overflow:hidden;border:1px solid var(--line);position:relative;margin-top:8px;background:var(--sea)}
+.minimap canvas{width:100%;height:100%;display:block;touch-action:none}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.hidden{display:none!important}
+a.link{color:var(--sec,var(--place));font-weight:600}
+
+.mapwrap,.minimap{isolation:isolate;z-index:0}
+.minimap{height:240px}
+.leaflet-container{font-family:var(--body);background:var(--sea)}
+.leaflet-tooltip{font-weight:600}
+.people{gap:0}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <h1 class="brand" id="brand">Basilico a Napoli</h1>
+    <div class="people" id="people"></div>
+  </header>
+  <main id="view"><div class="empty"><strong>Loading</strong>Connecting to your shared lists.</div></main>
+</div>
+<nav class="tabs hidden" id="tabsNav" aria-label="Sections"><div class="inner" role="tablist" id="tabs"></div></nav>
+<button class="fab hidden" id="fab"></button>
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></section>
+<div class="toast" id="toast" role="status"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, onValue, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB-AFAg4obXaBtg7rhDfYnLyRhFQWTdHqE",
+  authDomain: "basilico-napoletano.firebaseapp.com",
+  databaseURL: "https://basilico-napoletano-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "basilico-napoletano",
+  storageBucket: "basilico-napoletano.firebasestorage.app",
+  messagingSenderId: "893470078028",
+  appId: "1:893470078028:web:92a972a52dba45616a30e9"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const rdb = getDatabase(fbApp);
+const denied=e=>!!e&&/permission/i.test(String(e.code||"")+" "+String(e.message||""));
+
+/* items carried over from the claude.ai version */
+const OLD_ITEMS = [{"area": "", "createdAt": 1791897255011, "cuisine": "Libanese", "kind": "restaurant", "lat": 44.406186, "lng": 8.929269, "notes": "", "price": "", "ratings": {}, "status": "done", "title": "Allora", "updatedAt": 1791906084411}, {"area": "", "createdAt": 1791906078330, "cuisine": "Pizza", "kind": "restaurant", "lat": 44.4241, "lng": 8.810437, "notes": "", "price": "", "ratings": {}, "status": "done", "title": "Pria pulla", "updatedAt": 1791906078330}, {"createdAt": 1791897371848, "director": "", "genre": "", "kind": "movie", "notes": "", "ratings": {}, "status": "todo", "title": "Il signore degli anelli", "updatedAt": 1791897371848, "where": "", "year": ""}, {"createdAt": 1791897142765, "director": "", "genre": "", "kind": "movie", "notes": "", "ratings": {}, "status": "todo", "title": "Il pianeta del tesoro", "updatedAt": 1791897142764, "where": "", "year": ""}, {"createdAt": 1791897383026, "director": "", "genre": "", "kind": "movie", "notes": "", "ratings": {}, "status": "todo", "title": "Project hail mary", "updatedAt": 1791897383026, "where": "", "year": ""}];
+
+/* ---------- constants ---------- */
+const DEFAULT_TITLE = "Basilico a Napoli";
+const KINDS = {
+  movie:{label:"Movies", one:"movie", color:"--movie", todo:"Watchlist", done:"Watched", geo:false},
+  restaurant:{label:"Restaurants", one:"restaurant", color:"--restaurant", todo:"Want to try", done:"Been there", geo:true},
+  place:{label:"Places", one:"place", color:"--place", todo:"Want to go", done:"Been there", geo:true}
+};
+const ICONS = {
+  movie:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5l2 4M12 5l2 4M17 5l2 4"/></svg>',
+  restaurant:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M17 21V3c-2 1-3 4-3 8h3"/></svg>',
+  place:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+  map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>',
+  stats:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
+};
+const TABS = [["movie","Movies"],["restaurant","Restaurants"],["place","Places"],["map","Map"],["stats","Stats"]];
+const STAR_PATH = "M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z";
+const PERSON_COLORS = ["#D9480F","#1971C2","#2B8A3E","#AE3EC9"];
+
+/* ---------- state ---------- */
+let me=null, items=new Map(), users={}, appTitle=DEFAULT_TITLE, editingTitle=false, tab="movie";
+const ui={ movie:{q:"",status:"all",sort:"recent"}, restaurant:{q:"",status:"all",sort:"recent"}, place:{q:"",status:"all",sort:"recent"}, map:{restaurant:true,place:true} };
+let unsubs=[];
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2600);}
+function starsHTML(n,size){let h='<span class="stars" aria-label="'+(n||0)+' of 5 stars">';for(let i=1;i<=5;i++)h+='<svg viewBox="0 0 24 24"'+(size?' style="width:'+size+'px;height:'+size+'px"':'')+'><path d="'+STAR_PATH+'" fill="var('+(i<=n?'--star':'--star-off')+')"/></svg>';return h+'</span>';}
+function ratingsOf(it){const r=it.ratings||{};const out={};for(const k in r){const x=r[k];if(x&&(x.s>0||x.c))out[k]=x;}return out;}
+function avgOf(it){const r=Object.values(ratingsOf(it)).filter(x=>x.s>0);return r.length?r.reduce((a,b)=>a+b.s,0)/r.length:null;}
+function orderedUsers(){return Object.entries(users).sort((a,b)=>(a[1].firstSeen||0)-(b[1].firstSeen||0)).map(e=>e[0]);}
+function colorOf(id){const i=orderedUsers().indexOf(id);return PERSON_COLORS[(i<0?3:i)%PERSON_COLORS.length];}
+function nameOf(id){if(id===me)return "You";const u=users[id];return (u&&u.name)?u.name.split(" ")[0]:"Your partner";}
+function avatar(id){
+  const u=users[id];
+  if(u&&u.photo) return u.photo;
+  const letter=((u&&u.name)||"?").trim().charAt(0).toUpperCase()||"?";
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="'+colorOf(id)+'"/><text x="20" y="26" font-size="18" font-family="sans-serif" font-weight="700" fill="#fff" text-anchor="middle">'+esc(letter)+'</text></svg>';
+  return "data:image/svg+xml,"+encodeURIComponent(svg);
+}
+function imgTag(id,cls){return '<img'+(cls?' class="'+cls+'"':'')+' alt="" referrerpolicy="no-referrer" src="'+esc(avatar(id))+'" style="box-shadow:0 0 0 2px '+colorOf(id)+'">';}
+function allPeople(){const s=new Set(Object.keys(users));if(me)s.add(me);for(const it of items.values()){for(const k of Object.keys(ratingsOf(it)))s.add(k);}return [...s];}
+function others(){return allPeople().filter(x=>x!==me);}
+function metaLine(it){
+  const p=[];
+  if(it.kind==="movie"){if(it.year)p.push(it.year);if(it.director)p.push(it.director);if(it.genre)p.push(it.genre);if(it.where)p.push("on "+it.where);}
+  if(it.kind==="restaurant"){if(it.cuisine)p.push(it.cuisine);if(it.price)p.push(it.price);if(it.area)p.push(it.area);}
+  if(it.kind==="place"){if(it.type)p.push(it.type);if(it.area)p.push(it.area);}
+  return p.join(", ");
+}
+const hasLoc=it=>typeof it.lat==="number"&&typeof it.lng==="number";
+function mapsLink(it){return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(it.lat+","+it.lng);}
+function dirLink(it){return "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(it.lat+","+it.lng);}
+
+/* ---------- location parsing ---------- */
+function parseLoc(s){
+  s=(s||"").trim(); if(!s) return null;
+  if(/maps\.app\.goo\.gl|goo\.gl\//i.test(s)) return {error:"Short share links can't be read. Search the address above, or in Google Maps long-press the spot and copy the coordinates."};
+  let m;
+  const ok=(a,b)=>{a=+a;b=+b;return (isFinite(a)&&isFinite(b)&&Math.abs(a)<=90&&Math.abs(b)<=180)?{lat:+a.toFixed(6),lng:+b.toFixed(6)}:null;};
+  if((m=s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/))) return ok(m[1],m[2]);
+  if((m=s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/))) return ok(m[1],m[2]);
+  if((m=s.match(/[?&](?:q|query|ll|destination|center|daddr)=(-?\d+(?:\.\d+)?)\s*(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i))) return ok(m[1],m[2]);
+  if((m=s.match(/(\d+)°\s*(\d+)['′]\s*([\d.]+)["″]?\s*([NS])[\s,]+(\d+)°\s*(\d+)['′]\s*([\d.]+)["″]?\s*([EW])/i))){
+    const la=(+m[1]+m[2]/60+m[3]/3600)*(/s/i.test(m[4])?-1:1), lo=(+m[5]+m[6]/60+m[7]/3600)*(/w/i.test(m[8])?-1:1); return ok(la,lo);
+  }
+  if((m=s.match(/^\(?\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*\)?$/))) return ok(m[1],m[2]);
+  return {error:"Couldn't read a location from that. Paste coordinates like 44.4056, 8.9463 or a full Google Maps link."};
+}
+
+/* ---------- maps (Leaflet + OpenStreetMap) ---------- */
+const dark=()=>window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;
+function tileLayer(){
+  return L.tileLayer("https://{s}.basemaps.cartocdn.com/"+(dark()?"dark_all":"rastertiles/voyager")+"/{z}/{x}/{y}{r}.png",{
+    maxZoom:20, subdomains:"abcd",
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
+  });
+}
+function makeMap(el,opts){
+  const m=L.map(el,Object.assign({zoomControl:true,attributionControl:true,worldCopyJump:true},opts||{})).setView([44.41,8.93],12);
+  tileLayer().addTo(m);
+  return m;
+}
+function pinMarker(it){
+  const done=(it.status||"todo")==="done", c=cssVar(KINDS[it.kind].color);
+  return L.circleMarker([it.lat,it.lng],{radius:done?9:8,weight:done?3:3.5,color:done?"#fff":c,fillColor:done?c:"#fff",fillOpacity:1});
+}
+async function geocode(q){
+  const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=it,en&q="+encodeURIComponent(q));
+  if(!r.ok) throw new Error("geocode");
+  return (await r.json()).map(x=>({lat:+(+x.lat).toFixed(6),lng:+(+x.lon).toFixed(6),label:x.display_name}));
+}
+
+/* ---------- auth / boot ---------- */
+function showSignIn(msg){
+  unsubs.forEach(u=>u());unsubs=[];
+  $("#fab").classList.add("hidden"); $("#tabsNav").classList.add("hidden");
+  $("#view").innerHTML='<div class="empty" style="margin-top:24px"><strong>Welcome</strong>'+(msg?'<p class="err">'+esc(msg)+'</p>':'<p>Sign in with your Google account to open your shared lists.</p>')+
+    '<button class="btn primary" id="signin" style="--sec:var(--movie);margin-top:8px">Sign in with Google</button>'+(msg?' <button class="btn ghost" id="signout2" style="margin-top:8px">Use another account</button>':'')+'</div>';
+  $("#signin").onclick=async()=>{
+    const p=new GoogleAuthProvider(); p.setCustomParameters({prompt:"select_account"});
+    try{await signInWithPopup(auth,p);}
+    catch(e){ if(e&&(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment")) await signInWithRedirect(auth,p);
+      else if(e&&e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request") toast("Sign-in failed: "+(e.code||"unknown error")); }
+  };
+  const so=$("#signout2"); if(so) so.onclick=()=>signOut(auth);
+}
+onAuthStateChanged(auth, async u=>{
+  if(!u){ me=null; showSignIn(); return; }
+  me=u.uid;
+  try{
+    const uref=ref(rdb,"users/"+u.uid);
+    const snap=await get(uref);
+    const data={name:u.displayName||"",photo:u.photoURL||"",email:u.email||"",lastSeen:Date.now()};
+    if(!snap.exists()||!snap.val().firstSeen) data.firstSeen=Date.now();
+    await update(uref,data);
+  }catch(e){
+    if(denied(e)){ showSignIn(u.email+" doesn't have access to this app."); return; }
+  }
+  start();
+});
+function start(){
+  unsubs.forEach(x=>x());unsubs=[];
+  $("#tabsNav").classList.remove("hidden"); renderTabs();
+  let gotItems=false;
+  const fail=e=>{ if(denied(e)) showSignIn("This account doesn't have access to this app."); else toast("Connection problem. Reload the page."); };
+  unsubs.push(onValue(ref(rdb,"users"),s=>{users=s.val()||{};renderPeople();if(gotItems)rerender();},fail));
+  unsubs.push(onValue(ref(rdb,"settings/app"),s=>{const v=s.val(),t=v&&v.title;appTitle=(typeof t==="string"&&t.trim())?t:DEFAULT_TITLE;paintTitle();},()=>{}));
+  unsubs.push(onValue(ref(rdb,"items"),s=>{
+    const v=s.val()||{};items=new Map(Object.keys(v).map(k=>[k,Object.assign({id:k},v[k])]));gotItems=true;rerender();
+  },fail));
+}
+function rerender(){
+  if(tab==="map"&&mainMap){ refreshMainPins(); return; }
+  if(document.activeElement&&document.activeElement.classList.contains("search")) return;
+  render();
+}
+
+/* ---------- title ---------- */
+function paintTitle(){
+  document.title=appTitle;
+  if(editingTitle) return;
+  const b=$("#brand"); b.textContent="";
+  if(!me){ b.textContent=appTitle; return; }
+  const btn=document.createElement("button"); btn.type="button"; btn.textContent=appTitle; btn.title="Tap to rename"; btn.setAttribute("aria-label","Rename: "+appTitle);
+  btn.addEventListener("click",editTitle); b.appendChild(btn);
+}
+function editTitle(){
+  editingTitle=true;
+  const b=$("#brand"); b.textContent="";
+  const inp=document.createElement("input"); inp.value=appTitle; inp.maxLength=60; inp.setAttribute("aria-label","App name");
+  b.appendChild(inp); inp.focus(); inp.select();
+  let done=false;
+  const finish=async save=>{
+    if(done) return; done=true;
+    const v=inp.value.trim(); editingTitle=false;
+    if(save&&v&&v!==appTitle){ const old=appTitle; appTitle=v; paintTitle();
+      const ok=await write(()=>set(ref(rdb,"settings/app"),{title:v,updatedAt:Date.now()}));
+      if(ok) toast("Name saved"); else { appTitle=old; paintTitle(); }
+    } else paintTitle();
+  };
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();finish(true);} else if(e.key==="Escape"){finish(false);} });
+  inp.addEventListener("blur",()=>finish(true));
+}
+
+/* ---------- tabs ---------- */
+function renderTabs(){
+  $("#tabs").innerHTML=TABS.map(([id,l])=>{
+    const col=KINDS[id]?"var("+KINDS[id].color+")":"var(--ink)";
+    return '<button role="tab" data-tab="'+id+'" aria-selected="'+(tab===id)+'" style="--tab:'+col+'">'+ICONS[id]+'<span>'+l+'</span></button>';
+  }).join("");
+}
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(!b)return;tab=b.dataset.tab;renderTabs();render();window.scrollTo(0,0);});
+
+/* ---------- main render ---------- */
+let mainMap=null, mainLayer=null;
+function render(){
+  if(!me) return;
+  renderPeople();
+  const v=$("#view"), fab=$("#fab");
+  document.documentElement.style.setProperty("--sec",KINDS[tab]?"var("+KINDS[tab].color+")":"var(--place)");
+  if(tab!=="map"&&mainMap){mainMap.remove();mainMap=null;}
+  if(KINDS[tab]){
+    fab.classList.remove("hidden");
+    fab.innerHTML='<span aria-hidden="true">+</span> Add '+KINDS[tab].one;
+    fab.onclick=()=>openForm(tab,null);
+    renderList(v);
+  } else if(tab==="map"){ fab.classList.add("hidden"); renderMap(v); }
+  else { fab.classList.add("hidden"); renderStats(v); }
+}
+function renderPeople(){
+  const ids=[me,...others()].filter(Boolean).slice(0,4);
+  $("#people").innerHTML=ids.map(id=>'<img alt="'+esc(nameOf(id))+'" title="'+esc(nameOf(id))+'" referrerpolicy="no-referrer" src="'+esc(avatar(id))+'">').join("")+
+    (me?'<button class="btn ghost" id="signout" style="margin-left:10px;padding:6px 10px;font-size:13px">Sign out</button>':'');
+  const so=$("#signout"); if(so) so.onclick=()=>{ if(confirm("Sign out?")) signOut(auth); };
+}
+function rrowHTML(id,r){
+  if(!r) return '<div class="rrow">'+imgTag(id)+'<span class="none">'+(id===me?"You haven't rated it yet":esc(nameOf(id))+" hasn't rated it yet")+'</span></div>';
+  return '<div class="rrow">'+imgTag(id)+(r.s>0?starsHTML(r.s):'')+(r.c?'<span class="c">'+esc(r.c)+'</span>':'')+'</div>';
+}
+function renderList(v){
+  const st=ui[tab], K=KINDS[tab];
+  let arr=[...items.values()].filter(it=>it.kind===tab);
+  const total=arr.length;
+  if(st.q){const q=st.q.toLowerCase();arr=arr.filter(it=>(it.title+" "+metaLine(it)+" "+(it.notes||"")).toLowerCase().includes(q));}
+  if(st.status!=="all") arr=arr.filter(it=>(it.status||"todo")===st.status);
+  const byRecent=(a,b)=>(b.createdAt||0)-(a.createdAt||0);
+  if(st.sort==="recent") arr.sort(byRecent);
+  else if(st.sort==="top") arr.sort((a,b)=>(avgOf(b)??-1)-(avgOf(a)??-1)||byRecent(a,b));
+  else if(st.sort==="unrated") arr.sort((a,b)=>((ratingsOf(a)[me]?1:0)-(ratingsOf(b)[me]?1:0))||byRecent(a,b));
+  else if(st.sort==="az") arr.sort((a,b)=>a.title.localeCompare(b.title));
+  const ppl=[me,...others()].filter(Boolean).slice(0,2);
+  let h='';
+  if(items.size===0&&OLD_ITEMS.length&&!localStorageGet("imported")) h+='<div class="notice">Bring over the '+OLD_ITEMS.length+' things you added in the claude.ai version? <button class="btn primary" id="importOld" style="margin-left:6px;padding:6px 12px">Import</button></div>';
+  h+='<div class="toolbar"><h2>'+K.label+'</h2>'+
+    '<div class="seg" role="group" aria-label="Filter">'+[["all","All"],["todo",K.todo],["done",K.done]].map(([k,l])=>'<button data-status="'+k+'" aria-pressed="'+(st.status===k)+'">'+l+'</button>').join("")+'</div></div>'+
+    '<div class="toolbar"><input class="search" type="search" placeholder="Search '+K.label.toLowerCase()+'" value="'+esc(st.q)+'" aria-label="Search">'+
+    '<select class="sort" aria-label="Sort"><option value="recent">Newest first</option><option value="top">Highest rated</option><option value="unrated">Not rated by me</option><option value="az">A to Z</option></select></div>';
+  if(!total) h+='<div class="empty"><strong>No '+K.label.toLowerCase()+' yet</strong>Add the first '+K.one+' with the button below. You can both rate it and leave a comment.</div>';
+  else if(!arr.length) h+='<div class="empty"><strong>Nothing matches</strong>Try a different search or filter.</div>';
+  else h+='<div class="list">'+arr.map(it=>{
+      const r=ratingsOf(it), done=(it.status||"todo")==="done";
+      const ids=[...new Set([...ppl,...Object.keys(r)])].slice(0,3);
+      return '<button class="card" data-id="'+esc(it.id)+'"><p class="t">'+esc(it.title)+'<span class="status'+(done?' done':'')+'">'+(done?K.done:K.todo)+'</span></p>'+
+        '<p class="m">'+esc(metaLine(it))+'</p>'+ids.map(id=>rrowHTML(id,r[id])).join("")+'</button>';
+    }).join("")+'</div>';
+  v.innerHTML=h;
+  const imp=v.querySelector("#importOld"); if(imp) imp.onclick=importOld;
+  v.querySelector(".sort").value=st.sort;
+  const s=v.querySelector(".search");
+  s.addEventListener("input",()=>{st.q=s.value;clearTimeout(renderList._t);renderList._t=setTimeout(()=>{const pos=s.selectionStart;renderList(v);const n=v.querySelector(".search");n.focus();try{n.setSelectionRange(pos,pos);}catch(e){}},200);});
+  v.querySelector(".sort").addEventListener("change",e=>{st.sort=e.target.value;renderList(v);});
+  v.querySelectorAll("[data-status]").forEach(b=>b.addEventListener("click",()=>{st.status=b.dataset.status;renderList(v);}));
+  v.querySelectorAll(".card").forEach(c=>c.addEventListener("click",()=>openItem(c.dataset.id)));
+}
+function localStorageGet(k){try{return localStorage.getItem("bn:"+k);}catch(e){return null;}}
+function localStorageSet(k,v){try{localStorage.setItem("bn:"+k,v);}catch(e){}}
+async function importOld(){
+  const upd={};
+  for(const o of OLD_ITEMS){ const d=Object.assign({},o,{createdBy:me}); delete d.ratings; upd["items/"+push(ref(rdb,"items")).key]=d; }
+  if(await write(()=>update(ref(rdb),upd))){ localStorageSet("imported","1"); toast("Imported "+OLD_ITEMS.length+" items"); }
+}
+
+/* ---------- map tab ---------- */
+function refreshMainPins(){
+  if(!mainMap) return;
+  mainLayer.clearLayers();
+  const pts=[];
+  for(const it of items.values()){
+    if(!KINDS[it.kind]||!KINDS[it.kind].geo||!hasLoc(it)||!ui.map[it.kind]) continue;
+    const m=pinMarker(it).addTo(mainLayer);
+    m.bindTooltip(esc(it.title),{direction:"top",offset:[0,-8]});
+    m.on("click",()=>openItem(it.id));
+    pts.push([it.lat,it.lng]);
+  }
+  return pts;
+}
+function renderMap(v){
+  const f=ui.map;
+  const nloc=[...items.values()].filter(it=>KINDS[it.kind]&&KINDS[it.kind].geo&&!hasLoc(it)).length;
+  v.innerHTML='<div class="toolbar"><h2 style="color:var(--ink)">Map</h2><div class="legend">'+
+    ["restaurant","place"].map(k=>'<button class="chip" data-k="'+k+'" aria-pressed="'+f[k]+'" style="--c:var('+KINDS[k].color+')"><span class="dot"></span>'+KINDS[k].label+'</button>').join("")+
+    '<button class="chip" id="fitAll">Show all</button><button class="chip" id="locMe">Where am I</button></div></div><div class="mapwrap" id="mainMapEl"></div>'+
+    '<p class="muted small">Filled pins: been there. Hollow pins: still on the list. Tap a pin to open it.'+(nloc?' '+nloc+' item'+(nloc>1?'s have':' has')+' no location yet.':'')+'</p>';
+  if(mainMap){mainMap.remove();mainMap=null;}
+  mainMap=makeMap($("#mainMapEl")); mainLayer=L.featureGroup().addTo(mainMap);
+  const fit=()=>{const pts=refreshMainPins();if(pts.length===1)mainMap.setView(pts[0],15);else if(pts.length)mainMap.fitBounds(pts,{padding:[40,40],maxZoom:15});};
+  fit();
+  v.querySelectorAll(".chip[data-k]").forEach(b=>b.addEventListener("click",()=>{f[b.dataset.k]=!f[b.dataset.k];b.setAttribute("aria-pressed",f[b.dataset.k]);refreshMainPins();}));
+  $("#fitAll").onclick=fit;
+  $("#locMe").onclick=()=>{ if(!navigator.geolocation) return toast("Location isn't available.");
+    navigator.geolocation.getCurrentPosition(p=>{const ll=[p.coords.latitude,p.coords.longitude];mainMap.setView(ll,15);
+      L.circleMarker(ll,{radius:7,color:"#fff",weight:3,fillColor:"#1971C2",fillOpacity:1}).addTo(mainMap);},()=>toast("Couldn't get your location."),{enableHighAccuracy:true,timeout:10000}); };
+}
+
+/* ---------- stats tab ---------- */
+function renderStats(v){
+  const all=[...items.values()].filter(it=>KINDS[it.kind]);
+  const ppl=[me,...others()].filter(Boolean);
+  let h='<div class="toolbar"><h2 style="color:var(--ink)">Stats</h2></div><div class="stats">';
+  h+='<div class="panel wide"><h3>What we have</h3><div class="tally">'+Object.keys(KINDS).map(k=>{
+    const a=all.filter(i=>i.kind===k),d=a.filter(i=>i.status==="done").length;
+    return '<div style="--c:var('+KINDS[k].color+')"><b>'+a.length+'</b><span>'+KINDS[k].label+'<br>'+d+' '+KINDS[k].done.toLowerCase()+', '+(a.length-d)+' to go</span></div>';
+  }).join("")+'</div></div>';
+  h+='<div class="panel"><h3>Who rates what</h3>';
+  for(const id of ppl){
+    const rs=all.map(i=>ratingsOf(i)[id]).filter(r=>r&&r.s>0);
+    const avg=rs.length?(rs.reduce((a,b)=>a+b.s,0)/rs.length):null;
+    h+='<div class="prow">'+imgTag(id)+'<div class="n">'+esc(nameOf(id))+'<div class="muted small">'+rs.length+' rating'+(rs.length===1?'':'s')+', '+all.filter(i=>{const r=ratingsOf(i)[id];return r&&r.c;}).length+' comments</div></div><div class="v">'+(avg===null?'–':avg.toFixed(1)+' ★')+'</div></div>';
+  }
+  h+='</div>';
+  const both=[]; const partner=others()[0];
+  if(partner) for(const it of all){const r=ratingsOf(it);if(r[me]&&r[me].s>0&&r[partner]&&r[partner].s>0)both.push({it,a:r[me].s,b:r[partner].s,d:Math.abs(r[me].s-r[partner].s)});}
+  h+='<div class="panel"><h3>How much we agree</h3>';
+  if(!both.length) h+='<p class="muted">Once you\'ve both rated the same thing, you\'ll see how close your ratings are.</p>';
+  else{
+    const md=both.reduce((a,b)=>a+b.d,0)/both.length, same=both.filter(x=>x.d===0).length;
+    h+='<div class="big">'+Math.round(same/both.length*100)+'%</div><p class="muted small" style="margin:4px 0 12px">of the '+both.length+' things you both rated got exactly the same stars. On average you are '+md.toFixed(1)+' stars apart.</p>';
+    const dis=both.filter(x=>x.d>0).sort((a,b)=>b.d-a.d).slice(0,3);
+    if(dis.length) h+='<p class="small" style="margin:0 0 4px;font-weight:600">Biggest disagreements</p><ul class="toplist">'+dis.map(x=>'<li><button data-open="'+esc(x.it.id)+'">'+esc(x.it.title)+'</button><span class="sub">'+x.a+'★ vs '+x.b+'★</span></li>').join("")+'</ul>';
+  }
+  h+='</div>';
+  h+='<div class="panel"><h3>Star distribution</h3><div class="bars">';
+  const counts=ppl.map(id=>{const c=[0,0,0,0,0,0];for(const i of all){const r=ratingsOf(i)[id];if(r&&r.s>0)c[r.s]++;}return c;});
+  const mx=Math.max(1,...[1,2,3,4,5].map(s=>counts.reduce((a,c)=>a+c[s],0)));
+  for(let s=5;s>=1;s--){const tot=counts.reduce((a,c)=>a+c[s],0);
+    h+='<div class="bar"><span>'+s+'★</span><div class="track">'+counts.map((c,i)=>'<i style="width:'+(c[s]/mx*100)+'%;background:'+colorOf(ppl[i])+'" title="'+esc(nameOf(ppl[i]))+': '+c[s]+'"></i>').join("")+'</div><span>'+tot+'</span></div>';}
+  h+='</div><div class="legend" style="margin-top:10px">'+ppl.map(id=>'<span class="chip" style="--c:'+colorOf(id)+'"><span class="dot"></span>'+esc(nameOf(id))+'</span>').join("")+'</div></div>';
+  const waiting=all.filter(i=>{const r=ratingsOf(i);return !(r[me]&&r[me].s>0)&&Object.keys(r).some(k=>k!==me&&r[k].s>0);});
+  h+='<div class="panel"><h3>Waiting for your rating</h3>'+(waiting.length?'<ul class="toplist">'+waiting.slice(0,8).map(i=>'<li><button data-open="'+esc(i.id)+'">'+esc(i.title)+'</button><span class="sub">'+KINDS[i.kind].one+'</span></li>').join("")+'</ul>':'<p class="muted">You\'re all caught up.</p>')+'</div>';
+  for(const k of Object.keys(KINDS)){
+    const top=all.filter(i=>i.kind===k&&avgOf(i)!==null).sort((a,b)=>avgOf(b)-avgOf(a)).slice(0,5);
+    h+='<div class="panel"><h3 style="color:var('+KINDS[k].color+')">Our top '+KINDS[k].label.toLowerCase()+'</h3>'+(top.length?'<ul class="toplist">'+top.map(i=>'<li><button data-open="'+esc(i.id)+'">'+esc(i.title)+'</button><span class="sub">'+avgOf(i).toFixed(1)+' ★</span></li>').join("")+'</ul>':'<p class="muted">No ratings yet.</p>')+'</div>';
+  }
+  h+='</div>';
+  v.innerHTML=h;
+  v.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>openItem(b.dataset.open)));
+}
+
+/* ---------- sheet ---------- */
+let sheetMap=null;
+function openSheet(html,sec){
+  const s=$("#sheet");s.style.setProperty("--sec",sec);s.innerHTML='<div class="grab"></div>'+html;
+  $("#scrim").classList.add("open");s.classList.add("open");document.body.style.overflow="hidden";
+  s.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",closeSheet));
+  setTimeout(()=>{const f=s.querySelector("[autofocus]");if(f)f.focus();},50);
+}
+function closeSheet(){if(sheetMap){sheetMap.remove();sheetMap=null;}$("#sheet").classList.remove("open");$("#scrim").classList.remove("open");document.body.style.overflow="";}
+$("#scrim").addEventListener("click",closeSheet);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#sheet").classList.contains("open"))closeSheet();});
+
+async function write(fn){
+  try{await fn();return true;}
+  catch(e){
+    if(denied(e)) toast("This account isn't allowed to make changes.");
+    else toast("Couldn't save. Check your connection and try again.");
+    return false;
+  }
+}
+function saveRating(id,val){return write(()=>update(ref(rdb,"items/"+id),{["ratings/"+me]:val,updatedAt:Date.now()}));}
+
+function openItem(id){
+  const it=items.get(id); if(!it) return;
+  const K=KINDS[it.kind], r=ratingsOf(it), mine=r[me]||{s:0,c:""};
+  const done=(it.status||"todo")==="done";
+  let h='<div class="shead"><div><h2 id="sheetTitle">'+esc(it.title)+'</h2><p class="muted" style="margin:0">'+esc(metaLine(it)||K.one)+'<span class="status'+(done?' done':'')+'">'+(done?K.done:K.todo)+'</span></p></div><button class="x" data-close aria-label="Close">×</button></div>';
+  if(it.notes) h+='<p style="white-space:pre-wrap">'+esc(it.notes)+'</p>';
+  if(K.geo){
+    if(hasLoc(it)) h+='<div class="minimap" id="itemMap"></div><p class="small"><a class="link" href="'+mapsLink(it)+'" target="_blank" rel="noopener">Open in Google Maps</a> &nbsp; <a class="link" href="'+dirLink(it)+'" target="_blank" rel="noopener">Directions</a></p>';
+    else h+='<p class="muted small">No location set.</p>';
+  }
+  h+='<div class="myrate"><h3>'+imgTag(me)+'Your rating</h3><div class="rate-edit" role="radiogroup" aria-label="Your stars">'+
+    [1,2,3,4,5].map(i=>'<button type="button" role="radio" data-s="'+i+'" aria-label="'+i+' star'+(i>1?'s':'')+'"><svg viewBox="0 0 24 24"><path d="'+STAR_PATH+'"/></svg></button>').join("")+
+    '</div><label class="field" style="margin:6px 0"><span class="hidden">Comment</span><textarea id="myc" maxlength="2000" placeholder="What did you think?">'+esc(mine.c||"")+'</textarea></label>'+
+    '<div class="actions"><button class="btn primary" id="saveRate">Save rating</button><button class="btn ghost" id="clearRate">Clear</button></div></div>';
+  const os=Object.keys(r).filter(k=>k!==me);
+  h+='<div class="others">';
+  for(const k of os){const x=r[k];h+='<div class="o"><h3>'+imgTag(k)+esc(nameOf(k))+'</h3>'+(x.s>0?starsHTML(x.s,20):'<span class="muted small">No stars</span>')+(x.c?'<p>'+esc(x.c)+'</p>':'')+'</div>';}
+  if(!os.length) h+='<p class="muted small">'+(others().length?esc(nameOf(others()[0]))+' hasn\'t rated this yet.':'Your partner hasn\'t rated this yet.')+'</p>';
+  h+='</div><div class="actions"><button class="btn ghost" id="toggleStatus">Mark as '+(done?K.todo.toLowerCase():K.done.toLowerCase())+'</button><button class="btn ghost" id="editItem">Edit details</button><button class="btn danger" id="delItem">Delete</button></div>';
+  if(sheetMap){sheetMap.remove();sheetMap=null;}
+  openSheet(h,"var("+K.color+")");
+  const s=$("#sheet");
+  if(K.geo&&hasLoc(it)){ setTimeout(()=>{ sheetMap=makeMap(s.querySelector("#itemMap"),{zoomControl:false}); sheetMap.setView([it.lat,it.lng],16); pinMarker(it).addTo(sheetMap); sheetMap.invalidateSize(); },60); }
+  let stars=mine.s||0;
+  const paint=()=>s.querySelectorAll(".rate-edit button").forEach(b=>{const n=+b.dataset.s;b.querySelector("path").setAttribute("fill","var("+(n<=stars?"--star":"--star-off")+")");b.setAttribute("aria-checked",n===stars);});
+  paint();
+  s.querySelectorAll(".rate-edit button").forEach(b=>b.addEventListener("click",()=>{stars=(+b.dataset.s===stars)?0:+b.dataset.s;paint();}));
+  s.querySelector("#saveRate").addEventListener("click",async e=>{const c=s.querySelector("#myc").value.trim();e.target.disabled=true;
+    const ok=await saveRating(id,(stars||c)?{s:stars,c,at:Date.now()}:null);e.target.disabled=false;if(ok){toast("Rating saved");closeSheet();}});
+  s.querySelector("#clearRate").addEventListener("click",async()=>{if(await saveRating(id,null)){toast("Rating cleared");closeSheet();}});
+  s.querySelector("#toggleStatus").addEventListener("click",async()=>{if(await write(()=>update(ref(rdb,"items/"+id),{status:done?"todo":"done",updatedAt:Date.now()})))closeSheet();});
+  s.querySelector("#editItem").addEventListener("click",()=>openForm(it.kind,it));
+  s.querySelector("#delItem").addEventListener("click",async()=>{if(!confirm("Delete \""+it.title+"\" and all its ratings? This can't be undone."))return;
+    if(await write(()=>remove(ref(rdb,"items/"+id)))){toast("Deleted");closeSheet();}});
+}
+
+/* ---------- add / edit form ---------- */
+function openForm(kind,it){
+  const K=KINDS[kind], isNew=!it; it=it||{status:"todo"};
+  const f=(name,label,type,ph,extra)=>'<label class="field"><span>'+label+'</span><input name="'+name+'" type="'+(type||"text")+'" value="'+esc(it[name]??"")+'" placeholder="'+esc(ph||"")+'"'+(extra||"")+'></label>';
+  let h='<div class="shead"><h2 id="sheetTitle">'+(isNew?"Add a "+K.one:"Edit "+K.one)+'</h2><button class="x" data-close aria-label="Close">×</button></div><form id="itemForm" novalidate>';
+  h+=f("title",kind==="movie"?"Title":"Name","text",kind==="movie"?"e.g. Perfect Days":kind==="restaurant"?"e.g. Trattoria da Maria":"e.g. Portofino"," required autofocus maxlength=\"200\"");
+  if(kind==="movie") h+='<div class="row2">'+f("year","Year","number","2023",' inputmode="numeric" min="1880" max="2100"')+f("genre","Genre","text","Drama")+'</div><div class="row2">'+f("director","Director","text","")+f("where","Where to watch","text","Netflix, cinema...")+'</div>';
+  if(kind==="restaurant") h+='<div class="row2">'+f("cuisine","Cuisine","text","Ligurian")+'<label class="field"><span>Price</span><select name="price">'+["","€","€€","€€€","€€€€"].map(p=>'<option'+(it.price===p?' selected':'')+' value="'+p+'">'+(p||"Not set")+'</option>').join("")+'</select></label></div>'+f("area","Area or address","text","Genova, Centro storico");
+  if(kind==="place") h+='<div class="row2">'+f("type","Type","text","Beach, museum, hike...")+f("area","Area or address","text","Cinque Terre")+'</div>';
+  h+='<label class="field"><span>Status</span><select name="status"><option value="todo"'+(it.status!=="done"?' selected':'')+'>'+K.todo+'</option><option value="done"'+(it.status==="done"?' selected':'')+'>'+K.done+'</option></select></label>';
+  if(K.geo){
+    h+='<div class="field"><span>Location</span><div class="locbox">'+
+      '<div style="display:flex;gap:6px"><input id="addrQ" type="search" style="flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)" placeholder="Search a name or address"><button type="button" class="btn" id="addrGo">Search</button></div>'+
+      '<div id="addrRes"></div>'+
+      '<div class="minimap" id="formMap"></div><p class="muted small" style="margin:6px 0 0">Tap the map to move the pin.</p>'+
+      '<input name="loc" type="text" style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)" placeholder="Or paste coordinates or a Google Maps link" value="'+(hasLoc(it)?esc(it.lat+", "+it.lng):"")+'">'+
+      '<div class="okloc" id="locMsg"></div><div class="btns"><button type="button" class="btn" id="geoMe">Use my location</button><button type="button" class="btn ghost" id="clearLoc">Remove pin</button></div></div></div>';
+  }
+  h+='<label class="field"><span>Notes</span><textarea name="notes" maxlength="2000" placeholder="Who recommended it, what to order, best time to go...">'+esc(it.notes||"")+'</textarea></label>';
+  if(isNew) h+='<div class="field"><span>Your rating (optional)</span><div class="rate-edit" role="radiogroup" aria-label="Your stars">'+[1,2,3,4,5].map(i=>'<button type="button" role="radio" data-s="'+i+'" aria-label="'+i+' star'+(i>1?'s':'')+'"><svg viewBox="0 0 24 24"><path d="'+STAR_PATH+'"/></svg></button>').join("")+'</div><textarea name="mycomment" maxlength="2000" placeholder="Your comment" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);min-height:70px"></textarea></div>';
+  h+='<p class="err small" id="formErr"></p><div class="actions"><button class="btn primary" type="submit">'+(isNew?"Add "+K.one:"Save changes")+'</button><button class="btn ghost" type="button" data-close>Cancel</button></div></form>';
+  if(sheetMap){sheetMap.remove();sheetMap=null;}
+  openSheet(h,"var("+K.color+")");
+  const s=$("#sheet"), form=s.querySelector("#itemForm");
+  let stars=0;
+  const paint=()=>s.querySelectorAll(".rate-edit button").forEach(b=>{const n=+b.dataset.s;b.querySelector("path").setAttribute("fill","var("+(n<=stars?"--star":"--star-off")+")");b.setAttribute("aria-checked",n===stars);});
+  paint(); s.querySelectorAll(".rate-edit button").forEach(b=>b.addEventListener("click",()=>{stars=(+b.dataset.s===stars)?0:+b.dataset.s;paint();}));
+  let loc=hasLoc(it)?{lat:it.lat,lng:it.lng}:null, marker=null;
+  if(K.geo){
+    const inp=form.loc, msg=s.querySelector("#locMsg"), res=s.querySelector("#addrRes");
+    const show=(pan)=>{
+      msg.className="okloc";
+      msg.innerHTML=loc?'Pin at '+loc.lat.toFixed(5)+', '+loc.lng.toFixed(5)+'. <a class="link" target="_blank" rel="noopener" href="'+mapsLink(loc)+'">Check in Google Maps</a>':'';
+      if(sheetMap){ if(marker){marker.remove();marker=null;}
+        if(loc){ marker=L.marker([loc.lat,loc.lng],{draggable:true}).addTo(sheetMap);
+          marker.on("dragend",()=>{const p=marker.getLatLng();loc={lat:+p.lat.toFixed(6),lng:+p.lng.toFixed(6)};inp.value=loc.lat+", "+loc.lng;show(false);});
+          if(pan) sheetMap.setView([loc.lat,loc.lng],Math.max(sheetMap.getZoom(),16)); } }
+    };
+    setTimeout(()=>{
+      sheetMap=makeMap(s.querySelector("#formMap"));
+      const pts=[...items.values()].filter(x=>KINDS[x.kind]&&KINDS[x.kind].geo&&hasLoc(x)&&x.id!==it.id);
+      pts.forEach(x=>pinMarker(x).setStyle({opacity:.5,fillOpacity:.5}).addTo(sheetMap));
+      if(loc) sheetMap.setView([loc.lat,loc.lng],16); else if(pts.length) sheetMap.fitBounds(pts.map(x=>[x.lat,x.lng]),{padding:[30,30],maxZoom:14});
+      sheetMap.on("click",e=>{loc={lat:+e.latlng.lat.toFixed(6),lng:+e.latlng.lng.toFixed(6)};inp.value=loc.lat+", "+loc.lng;show(false);});
+      sheetMap.invalidateSize(); show(false);
+    },60);
+    const search=async()=>{
+      const q=s.querySelector("#addrQ").value.trim(); if(!q) return;
+      res.innerHTML='<p class="muted small">Searching...</p>';
+      try{
+        let list=[];
+        if(sheetMap){ const c=sheetMap.getCenter(); list=await geocode(q); list.sort((a,b)=>((a.lat-c.lat)**2+(a.lng-c.lng)**2)-((b.lat-c.lat)**2+(b.lng-c.lng)**2)); }
+        else list=await geocode(q);
+        if(!list.length){res.innerHTML='<p class="muted small">Nothing found. Try adding the city, or tap the map.</p>';return;}
+        res.innerHTML='<ul class="toplist" style="margin:8px 0">'+list.map((x,i)=>'<li><button type="button" data-i="'+i+'" style="font-weight:500">'+esc(x.label)+'</button></li>').join("")+'</ul>';
+        res.querySelectorAll("[data-i]").forEach(b=>b.addEventListener("click",()=>{const x=list[+b.dataset.i];loc={lat:x.lat,lng:x.lng};inp.value=loc.lat+", "+loc.lng;res.innerHTML="";
+          if(!form.area||form.area.value) {} else form.area.value=x.label.split(",").slice(0,3).join(",").trim();
+          show(true);}));
+      }catch(e){res.innerHTML='<p class="err small">Search isn\'t responding right now. Tap the map or paste coordinates instead.</p>';}
+    };
+    s.querySelector("#addrGo").addEventListener("click",search);
+    s.querySelector("#addrQ").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();search();}});
+    if(isNew) form.title.addEventListener("change",()=>{const q=s.querySelector("#addrQ");if(!q.value)q.value=form.title.value;});
+    inp.addEventListener("input",()=>{const p=parseLoc(inp.value);if(!p){loc=null;show(false);return;}if(p.error){loc=null;msg.className="okloc err";msg.textContent=p.error;return;}loc=p;show(true);});
+    s.querySelector("#clearLoc").addEventListener("click",()=>{loc=null;inp.value="";show(false);});
+    s.querySelector("#geoMe").addEventListener("click",()=>{
+      if(!navigator.geolocation){msg.className="okloc err";msg.textContent="Location isn't available in this browser.";return;}
+      msg.className="okloc";msg.textContent="Finding you...";
+      navigator.geolocation.getCurrentPosition(pos=>{loc={lat:+pos.coords.latitude.toFixed(6),lng:+pos.coords.longitude.toFixed(6)};inp.value=loc.lat+", "+loc.lng;show(true);},
+        ()=>{msg.className="okloc err";msg.textContent="Your browser didn't share your location. Search the address or tap the map instead.";},{enableHighAccuracy:true,timeout:10000});
+    });
+  }
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fd=new FormData(form), get=k=>(fd.get(k)||"").toString().trim();
+    const title=get("title"); if(!title){s.querySelector("#formErr").textContent="Add a "+(kind==="movie"?"title":"name")+" first.";form.title.focus();return;}
+    const data={kind,title,status:get("status")||"todo",notes:get("notes"),updatedAt:Date.now()};
+    if(kind==="movie"){data.year=get("year");data.genre=get("genre");data.director=get("director");data.where=get("where");}
+    if(kind==="restaurant"){data.cuisine=get("cuisine");data.price=get("price");data.area=get("area");}
+    if(kind==="place"){data.type=get("type");data.area=get("area");}
+    if(K.geo){ if(form.loc.value.trim()&&!loc){s.querySelector("#formErr").textContent="Fix the location or remove it before saving.";return;} data.lat=loc?loc.lat:null;data.lng=loc?loc.lng:null; }
+    const btn=form.querySelector("[type=submit]");btn.disabled=true;
+    let ok;
+    if(isNew){
+      data.createdBy=me;data.createdAt=Date.now();data.ratings={};if(!data.lat&&data.lat!==0){delete data.lat;delete data.lng;}
+      const c=get("mycomment"); if(stars||c) data.ratings[me]={s:stars,c,at:Date.now()};
+      ok=await write(()=>set(push(ref(rdb,"items")),data));
+    } else ok=await write(()=>update(ref(rdb,"items/"+it.id),data));
+    btn.disabled=false;
+    if(ok){toast(isNew?"Added":"Changes saved");closeSheet();}
+  });
+}
+paintTitle();
+
+</script>
+</body>
+</html>
