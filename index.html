@@ -246,7 +246,7 @@ const STAR_PATH = "M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.
 const PERSON_COLORS = ["#D9480F","#1971C2","#2B8A3E","#AE3EC9"];
 
 /* ---------- state ---------- */
-let me=null, items=new Map(), users={}, appTitle=DEFAULT_TITLE, editingTitle=false, tab="movie";
+let me=null, items=new Map(), users={}, appTitle=localStorageGet("title")||DEFAULT_TITLE,
 const ui={ movie:{q:"",status:"all",sort:"recent"}, restaurant:{q:"",status:"all",sort:"recent"}, place:{q:"",status:"all",sort:"recent"}, map:{restaurant:true,place:true} };
 let unsubs=[];
 
