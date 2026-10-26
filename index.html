@@ -80,10 +80,19 @@ select.sort{padding:8px 10px;border-radius:12px;border:1px solid var(--line);bac
 
 .list{display:grid;gap:10px;grid-template-columns:1fr}
 @media (min-width:760px){.list{grid-template-columns:1fr 1fr}}
-.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--sec);border-radius:14px;padding:14px 14px 12px;text-align:left;width:100%;display:block}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--sec);border-radius:14px;padding:14px 14px 12px;text-align:left;width:100%;display:block;min-width:0}
 .card:hover{border-color:var(--sec)}
 .card .t{font:700 19px/1.2 var(--display);margin:0 0 2px}
-.card .m{color:var(--muted);font-size:14px;margin:0 0 10px}
+.card .m{color:var(--muted);font-size:14px;margin:0 0 10px;overflow-wrap:anywhere}
+.linksbox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin:14px 0}
+.linksbox h3{font:700 17px var(--display);margin:0 0 4px}
+.linksbox li a{overflow-wrap:anywhere;min-width:0}
+.linksbox .lrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.linksbox .lrow input{flex:1 1 160px;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.linksbox .ldel{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;padding:0 4px;flex:none}
+.cthumbs{display:flex;gap:4px;margin:0 0 8px}
+.cthumbs img{width:56px;height:56px;object-fit:cover;border-radius:8px;display:block}
+.cthumbs span{width:56px;height:56px;border-radius:8px;background:var(--surface2);display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--muted)}
 .status{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--surface2);color:var(--muted);margin-left:6px;vertical-align:2px}
 .status.done{background:color-mix(in srgb,var(--sec) 16%,transparent);color:var(--sec)}
 .rrow{display:flex;align-items:flex-start;gap:8px;margin-top:6px;font-size:14px}
@@ -419,6 +428,7 @@ $("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-ta
 let mainMap=null, mainLayer=null;
 function render(){
   if(!me) return;
+  if(tab==="recipe") ensureThumbs();
   renderPeople();
   const v=$("#view"), fab=$("#fab");
   document.documentElement.style.setProperty("--sec",KINDS[tab]?"var("+KINDS[tab].color+")":"var(--place)");
@@ -465,7 +475,7 @@ function renderList(v){
       const r=ratingsOf(it), done=(it.status||"todo")==="done";
       const ids=[...new Set([...ppl,...Object.keys(r)])].slice(0,3);
       return '<button class="card" data-id="'+esc(it.id)+'"><p class="t">'+esc(it.title)+'<span class="status'+(done?' done':'')+'">'+(done?K.done:K.todo)+'</span></p>'+
-        '<p class="m">'+esc(metaLine(it))+'</p>'+ids.map(id=>rrowHTML(id,r[id])).join("")+'</button>';
+        '<p class="m">'+esc(metaLine(it))+'</p>'+(K.photos?cardThumbs(it.id):'')+ids.map(id=>rrowHTML(id,r[id])).join("")+'</button>';
     }).join("")+'</div>';
   v.innerHTML=h;
   const imp=v.querySelector("#importOld"); if(imp) imp.onclick=importOld;
@@ -588,6 +598,7 @@ function openItem(id){
   const done=(it.status||"todo")==="done";
   let h='<div class="shead"><div><h2 id="sheetTitle">'+esc(it.title)+'</h2><p class="muted" style="margin:0">'+esc(metaLine(it)||K.one)+'<span class="status'+(done?' done':'')+'">'+(done?K.done:K.todo)+'</span></p></div><button class="x" data-close aria-label="Close">×</button></div>';
   if(it.notes) h+='<p style="white-space:pre-wrap">'+esc(it.notes)+'</p>';
+  h+='<div class="linksbox"><h3>Links</h3><ul class="toplist" id="linkList"></ul><div class="lrow"><input id="linkUrl" type="url" inputmode="url" placeholder="Paste a link"><input id="linkLabel" type="text" maxlength="80" placeholder="Name (optional)"><button type="button" class="btn" id="linkAdd">Add</button></div><p class="err small" id="linkErr" style="margin:6px 0 0"></p></div>';
   if(K.geo){
     if(hasLoc(it)) h+='<div class="minimap" id="itemMap"></div><p class="small"><a class="link" href="'+mapsLink(it)+'" target="_blank" rel="noopener">Open in Google Maps</a> &nbsp; <a class="link" href="'+dirLink(it)+'" target="_blank" rel="noopener">Directions</a></p>';
     else h+='<p class="muted small">No location set.</p>';
@@ -607,7 +618,8 @@ function openItem(id){
   if(sheetUnsub){sheetUnsub();sheetUnsub=null;}
   openSheet(h,"var("+K.color+")");
   const s=$("#sheet");
-  if(K.photos) setupPhotos(id,s);
+  setupLinks(id,s);
+  if(K.photos){ ensureThumbs(); setupPhotos(id,s); }
   if(K.geo&&hasLoc(it)){ setTimeout(()=>{ sheetMap=makeMap(s.querySelector("#itemMap"),{zoomControl:false}); sheetMap.setView([it.lat,it.lng],16); pinMarker(it).addTo(sheetMap); sheetMap.invalidateSize(); },60); }
   let stars=mine.s||0;
   const paint=()=>s.querySelectorAll(".rate-edit button").forEach(b=>{const n=+b.dataset.s;b.querySelector("path").setAttribute("fill","var("+(n<=stars?"--star":"--star-off")+")");b.setAttribute("aria-checked",n===stars);});
@@ -619,21 +631,61 @@ function openItem(id){
   s.querySelector("#toggleStatus").addEventListener("click",async()=>{if(await write(()=>update(ref(rdb,"items/"+id),{status:done?"todo":"done",updatedAt:Date.now()})))closeSheet();});
   s.querySelector("#editItem").addEventListener("click",()=>openForm(it.kind,it));
   s.querySelector("#delItem").addEventListener("click",async()=>{if(!confirm("Delete \""+it.title+"\" and all its ratings? This can't be undone."))return;
-    if(await write(()=>update(ref(rdb),{["items/"+id]:null,["photos/"+id]:null}))){toast("Deleted");closeSheet();}});
+    if(await write(()=>update(ref(rdb),{["items/"+id]:null,["photos/"+id]:null,["thumbs/"+id]:null}))){toast("Deleted");closeSheet();}});
+}
+
+/* ---------- links ---------- */
+function cleanUrl(s){
+  s=(s||"").trim(); if(!s) return null;
+  if(!/^[a-z][a-z0-9+.-]*:/i.test(s)) s="https://"+s;
+  try{ const u=new URL(s); return (u.protocol==="http:"||u.protocol==="https:")&&u.hostname.includes(".")?u.href:null; }catch(e){ return null; }
+}
+function setupLinks(id,s){
+  const list=s.querySelector("#linkList"), url=s.querySelector("#linkUrl"), label=s.querySelector("#linkLabel"), err=s.querySelector("#linkErr");
+  const paint=()=>{
+    const it=items.get(id), L=(it&&it.links)||{};
+    const keys=Object.keys(L).sort((a,b)=>(L[a].at||0)-(L[b].at||0));
+    list.innerHTML=keys.length?keys.map(k=>{const x=L[k];let host="";try{host=new URL(x.url).hostname.replace(/^www\./,"");}catch(e){}
+      return '<li><a class="link" href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.label||host||x.url)+'</a><button type="button" class="ldel" data-k="'+esc(k)+'" aria-label="Remove link">×</button></li>';}).join(""):'<li class="muted small">No links yet.</li>';
+    list.querySelectorAll("[data-k]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("Remove this link?"))return;
+      if(await write(()=>remove(ref(rdb,"items/"+id+"/links/"+b.dataset.k)))) paint();}));
+  };
+  const add=async()=>{
+    const u=cleanUrl(url.value); err.textContent="";
+    if(!u){ err.textContent="That doesn't look like a web link."; url.focus(); return; }
+    if(await write(()=>set(push(ref(rdb,"items/"+id+"/links")),{url:u,label:label.value.trim(),at:Date.now(),by:me}))){ url.value="";label.value="";paint(); }
+  };
+  s.querySelector("#linkAdd").addEventListener("click",add);
+  [url,label].forEach(el=>el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();add();}}));
+  paint();
 }
 
 /* ---------- recipe photos ---------- */
 const MAX_PHOTOS=8;
-function shrinkImage(file){
+let thumbs={}, thumbsUnsub=null;
+function ensureThumbs(){
+  if(thumbsUnsub) return;
+  thumbsUnsub=onValue(ref(rdb,"thumbs"),snap=>{thumbs=snap.val()||{};if(tab==="recipe")rerender();},()=>{});
+  unsubs.push(()=>{if(thumbsUnsub){thumbsUnsub();thumbsUnsub=null;}});
+}
+function cardThumbs(id){
+  const t=thumbs[id]; if(!t) return "";
+  const list=[];for(const u in t)for(const k in t[u])list.push(t[u][k]);
+  if(!list.length) return "";
+  list.sort((a,b)=>(a.at||0)-(b.at||0));
+  return '<div class="cthumbs">'+list.slice(0,4).map(x=>'<img alt="" src="'+esc(x.d)+'">').join("")+(list.length>4?'<span>+'+(list.length-4)+'</span>':'')+'</div>';
+}
+function shrinkImage(file,max,q){
+  max=max||1280; q=q||0.75;
   return new Promise((res,rej)=>{
-    const url=URL.createObjectURL(file), img=new Image();
+    const isStr=typeof file==="string", url=isStr?file:URL.createObjectURL(file), img=new Image();
     img.onload=()=>{
-      const k=Math.min(1,1280/Math.max(img.width,img.height)), c=document.createElement("canvas");
+      const k=Math.min(1,max/Math.max(img.width,img.height)), c=document.createElement("canvas");
       c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
       c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg",0.75));
+      if(!isStr) URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg",q));
     };
-    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("decode"));};
+    img.onerror=()=>{if(!isStr)URL.revokeObjectURL(url);rej(new Error("decode"));};
     img.src=url;
   });
 }
@@ -649,11 +701,17 @@ function setupPhotos(id,s){
     const mineBox=s.querySelector("#myPhotos"), oBox=s.querySelector("#otherPhotos");
     if(!mineBox||!oBox) return;
     mineBox.innerHTML=thumbs(all[me],true); fill(mineBox,all[me]||{});
-    mineBox.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async()=>{if(confirm("Delete this photo?"))await write(()=>remove(ref(rdb,"photos/"+id+"/"+me+"/"+b.dataset.del)));}));
+    mineBox.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async()=>{if(confirm("Delete this photo?"))await write(()=>update(ref(rdb),{["photos/"+id+"/"+me+"/"+b.dataset.del]:null,["thumbs/"+id+"/"+me+"/"+b.dataset.del]:null}));}));
     oBox.innerHTML=Object.keys(all).filter(u=>u!==me&&all[u]).map(u=>'<div class="o" data-u="'+esc(u)+'"><h3>'+imgTag(u)+esc(nameOf(u))+'\'s photos</h3><div class="photos">'+thumbs(all[u],false)+'</div></div>').join("");
     oBox.querySelectorAll("[data-u]").forEach(el=>fill(el,all[el.dataset.u]||{}));
   };
-  sheetUnsub=onValue(ref(rdb,"photos/"+id),snap=>{all=snap.val()||{};paint();},()=>{});
+  const making=new Set();
+  const backfill=()=>{for(const u in all)for(const k in (all[u]||{})){
+    if(thumbs[id]&&thumbs[id][u]&&thumbs[id][u][k]) continue;
+    const key=u+"/"+k; if(making.has(key)) continue; making.add(key);
+    shrinkImage(all[u][k].d,240,0.6).then(t=>set(ref(rdb,"thumbs/"+id+"/"+key),{d:t,at:all[u][k].at||Date.now()})).catch(()=>{});
+  }};
+  sheetUnsub=onValue(ref(rdb,"photos/"+id),snap=>{all=snap.val()||{};paint();backfill();},()=>{});
   const inp=s.querySelector("#photoIn");
   if(inp) inp.addEventListener("change",async()=>{
     const files=[...inp.files]; inp.value="";
@@ -662,7 +720,8 @@ function setupPhotos(id,s){
     if(files.length>room) toast("Only the first "+room+" photos will be added.");
     let n=0;
     for(const f of files.slice(0,room)){
-      try{ const d=await shrinkImage(f); if(await write(()=>set(push(ref(rdb,"photos/"+id+"/"+me)),{d,at:Date.now()}))) n++; }
+      try{ const d=await shrinkImage(f), t=await shrinkImage(d,240,0.6), k=push(ref(rdb,"photos/"+id+"/"+me)).key, at=Date.now();
+        if(await write(()=>update(ref(rdb),{["photos/"+id+"/"+me+"/"+k]:{d,at},["thumbs/"+id+"/"+me+"/"+k]:{d:t,at}}))) n++; }
       catch(e){ toast("Couldn't read one of the photos. Try a JPEG or PNG."); }
     }
     if(n) toast(n+" photo"+(n>1?"s":"")+" added");
