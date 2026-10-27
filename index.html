@@ -176,7 +176,7 @@ select.sort{padding:8px 10px;border-radius:12px;border:1px solid var(--line);bac
 @media (prefers-reduced-motion:reduce){.sheet{transition:none}}
 .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
 .sheet h2{font:800 28px/1.1 var(--display);margin:4px 0 6px;letter-spacing:-.01em}
-.shead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.shead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:sticky;top:-8px;z-index:3;background:var(--bg);padding:8px 0 6px}
 .x{border:0;background:var(--surface2);width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;flex:none}
 .field{display:block;margin:12px 0}
 .field>span{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
@@ -598,10 +598,17 @@ function renderStats(v){
 let sheetMap=null, sheetUnsub=null;
 function openSheet(html,sec){
   const s=$("#sheet");s.style.setProperty("--sec",sec);s.innerHTML='<div class="grab"></div>'+html;
-  $("#scrim").classList.add("open");s.classList.add("open");document.body.style.overflow="hidden";
+  $("#scrim").classList.add("open");s.classList.add("open");document.body.style.overflow="hidden";fitSheet();
   s.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",closeSheet));
   setTimeout(()=>{const f=s.querySelector("[autofocus]");if(f)f.focus();},50);
 }
+function fitSheet(){
+  const s=$("#sheet"), vv=window.visualViewport;
+  if(!vv||window.matchMedia("(min-width:760px)").matches){ s.style.maxHeight="";s.style.bottom=""; return; }
+  const hidden=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+  s.style.bottom=hidden+"px"; s.style.maxHeight=Math.round(vv.height*0.94)+"px";
+}
+if(window.visualViewport){ window.visualViewport.addEventListener("resize",fitSheet); window.visualViewport.addEventListener("scroll",fitSheet); }
 function closeSheet(){if(sheetUnsub){sheetUnsub();sheetUnsub=null;}if(sheetMap){sheetMap.remove();sheetMap=null;}$("#sheet").classList.remove("open");$("#scrim").classList.remove("open");document.body.style.overflow="";}
 $("#scrim").addEventListener("click",closeSheet);
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#sheet").classList.contains("open"))closeSheet();});
@@ -628,11 +635,16 @@ function openItem(id){
     if(hasLoc(it)) h+='<div class="minimap" id="itemMap"></div><p class="small"><a class="link" href="'+mapsLink(it)+'" target="_blank" rel="noopener">Open in Google Maps</a> &nbsp; <a class="link" href="'+dirLink(it)+'" target="_blank" rel="noopener">Directions</a></p>';
     else h+='<p class="muted small">No location set.</p>';
   }
-  h+='<div class="myrate"><h3>'+imgTag(me)+'Your rating</h3><div class="rate-edit" role="radiogroup" aria-label="Your stars">'+
+  const hasMine=!!(r[me]);
+  h+='<div class="myrate"><h3>'+imgTag(me)+'Your rating</h3>'+
+    (hasMine?'<div id="rateView">'+(mine.s>0?starsHTML(mine.s,22):'<span class="muted small">No stars</span>')+(mine.c?'<p style="white-space:pre-wrap;margin:6px 0 0">'+esc(mine.c)+'</p>':'')+
+      '<div class="actions"><button class="btn ghost" id="editRate">Edit rating</button></div></div>':'')+
+    '<div id="rateEdit"'+(hasMine?' class="hidden"':'')+'><div class="rate-edit" role="radiogroup" aria-label="Your stars">'+
     [1,2,3,4,5].map(i=>'<button type="button" role="radio" data-s="'+i+'" aria-label="'+i+' star'+(i>1?'s':'')+'"><svg viewBox="0 0 24 24"><path d="'+STAR_PATH+'"/></svg></button>').join("")+
     '</div><label class="field" style="margin:6px 0"><span class="hidden">Comment</span><textarea id="myc" maxlength="2000" placeholder="What did you think?">'+esc(mine.c||"")+'</textarea></label>'+
+    '<div class="actions"><button class="btn primary" id="saveRate">Save rating</button>'+(hasMine?'<button class="btn ghost" id="cancelRate">Cancel</button>':'')+'<button class="btn ghost" id="clearRate">Clear</button></div></div>'+
     (K.photos?'<div class="photos" id="myPhotos"></div><label class="btn ghost" style="display:inline-block;margin-top:8px">Add photos<input type="file" accept="image/*" multiple hidden id="photoIn"></label>':'')+
-    '<div class="actions"><button class="btn primary" id="saveRate">Save rating</button><button class="btn ghost" id="clearRate">Clear</button></div></div>';
+    '</div>';
   const os=Object.keys(r).filter(k=>k!==me);
   h+='<div class="others">';
   for(const k of os){const x=r[k];h+='<div class="o"><h3>'+imgTag(k)+esc(nameOf(k))+'</h3>'+(x.s>0?starsHTML(x.s,20):'<span class="muted small">No stars</span>')+(x.c?'<p>'+esc(x.c)+'</p>':'')+'</div>';}
@@ -654,6 +666,9 @@ function openItem(id){
   s.querySelector("#saveRate").addEventListener("click",async e=>{const c=s.querySelector("#myc").value.trim();e.target.disabled=true;
     const ok=await saveRating(id,(stars||c)?{s:stars,c,at:Date.now()}:null);e.target.disabled=false;if(ok){toast("Rating saved");closeSheet();}});
   s.querySelector("#clearRate").addEventListener("click",async()=>{if(await saveRating(id,null)){toast("Rating cleared");closeSheet();}});
+  const er=s.querySelector("#editRate"), cr=s.querySelector("#cancelRate");
+  if(er) er.addEventListener("click",()=>{s.querySelector("#rateView").classList.add("hidden");s.querySelector("#rateEdit").classList.remove("hidden");});
+  if(cr) cr.addEventListener("click",()=>{stars=mine.s||0;paint();s.querySelector("#myc").value=mine.c||"";s.querySelector("#rateEdit").classList.add("hidden");s.querySelector("#rateView").classList.remove("hidden");});
   s.querySelector("#toggleStatus").addEventListener("click",async()=>{
     const upd={status:done?"todo":"done",updatedAt:Date.now()};
     if(!done) upd["visits/"+push(ref(rdb,"items")).key]={date:today(),by:me,at:Date.now()};
