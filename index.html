@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F4F4F8">
 <title>Basilico napoletano</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Basilico">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -62,6 +68,12 @@ nav.tabs .inner{display:flex;gap:2px;width:100%;max-width:640px}
 nav.tabs button{flex:1;border:0;background:none;padding:6px 2px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--muted)}
 nav.tabs button svg{width:24px;height:24px}
 nav.tabs button[aria-selected="true"]{color:var(--tab,var(--ink));background:var(--surface2)}
+@media (max-width:759px){
+  nav.tabs button{min-width:0}
+  nav.tabs button span{display:none}
+  nav.tabs button[aria-selected="true"]{flex:2.2}
+  nav.tabs button[aria-selected="true"] span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+}
 @media (min-width:760px){
   nav.tabs{position:sticky;top:0;bottom:auto;border:0;border-bottom:1px solid var(--line);background:var(--bg);padding:8px 0;top:env(safe-area-inset-top,0px)}
   nav.tabs .inner{max-width:none}
@@ -419,7 +431,7 @@ function editTitle(){
 function renderTabs(){
   $("#tabs").innerHTML=TABS.map(([id,l])=>{
     const col=KINDS[id]?"var("+KINDS[id].color+")":"var(--ink)";
-    return '<button role="tab" data-tab="'+id+'" aria-selected="'+(tab===id)+'" style="--tab:'+col+'">'+ICONS[id]+'<span>'+l+'</span></button>';
+    return '<button role="tab" data-tab="'+id+'" aria-label="'+l+'" aria-selected="'+(tab===id)+'" style="--tab:'+col+'">'+ICONS[id]+'<span>'+l+'</span></button>';
   }).join("");
 }
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(!b)return;tab=b.dataset.tab;renderTabs();render();window.scrollTo(0,0);});
@@ -462,19 +474,20 @@ function renderList(v){
   else if(st.sort==="top") arr.sort((a,b)=>(avgOf(b)??-1)-(avgOf(a)??-1)||byRecent(a,b));
   else if(st.sort==="unrated") arr.sort((a,b)=>((ratingsOf(a)[me]?1:0)-(ratingsOf(b)[me]?1:0))||byRecent(a,b));
   else if(st.sort==="az") arr.sort((a,b)=>a.title.localeCompare(b.title));
+  else if(st.sort==="last") arr.sort((a,b)=>lastVisit(b).localeCompare(lastVisit(a))||byRecent(a,b));
   const ppl=[me,...others()].filter(Boolean).slice(0,2);
   let h='';
   if(items.size===0&&OLD_ITEMS.length&&!localStorageGet("imported")) h+='<div class="notice">Bring over the '+OLD_ITEMS.length+' things you added in the claude.ai version? <button class="btn primary" id="importOld" style="margin-left:6px;padding:6px 12px">Import</button></div>';
   h+='<div class="toolbar"><h2>'+K.label+'</h2>'+
     '<div class="seg" role="group" aria-label="Filter">'+[["all","All"],["todo",K.todo],["done",K.done]].map(([k,l])=>'<button data-status="'+k+'" aria-pressed="'+(st.status===k)+'">'+l+'</button>').join("")+'</div></div>'+
     '<div class="toolbar"><input class="search" type="search" placeholder="Search '+K.label.toLowerCase()+'" value="'+esc(st.q)+'" aria-label="Search">'+
-    '<select class="sort" aria-label="Sort"><option value="recent">Newest first</option><option value="top">Highest rated</option><option value="unrated">Not rated by me</option><option value="az">A to Z</option></select></div>';
+    '<select class="sort" aria-label="Sort"><option value="recent">Newest first</option><option value="top">Highest rated</option><option value="unrated">Not rated by me</option><option value="last">Most recently done</option><option value="az">A to Z</option></select></div>';
   if(!total) h+='<div class="empty"><strong>No '+K.label.toLowerCase()+' yet</strong>Add the first '+K.one+' with the button below. You can both rate it and leave a comment.</div>';
   else if(!arr.length) h+='<div class="empty"><strong>Nothing matches</strong>Try a different search or filter.</div>';
   else h+='<div class="list">'+arr.map(it=>{
       const r=ratingsOf(it), done=(it.status||"todo")==="done";
       const ids=[...new Set([...ppl,...Object.keys(r)])].slice(0,3);
-      return '<button class="card" data-id="'+esc(it.id)+'"><p class="t">'+esc(it.title)+'<span class="status'+(done?' done':'')+'">'+(done?K.done:K.todo)+'</span></p>'+
+      return '<button class="card" data-id="'+esc(it.id)+'"><p class="t">'+esc(it.title)+'<span class="status'+(done?' done':'')+'">'+(done?K.done+(lastVisit(it)?', '+fmtDate(lastVisit(it)):''):K.todo)+'</span></p>'+
         '<p class="m">'+esc(metaLine(it))+'</p>'+(K.photos?cardThumbs(it.id):'')+ids.map(id=>rrowHTML(id,r[id])).join("")+'</button>';
     }).join("")+'</div>';
   v.innerHTML=h;
@@ -559,6 +572,17 @@ function renderStats(v){
   for(let s=5;s>=1;s--){const tot=counts.reduce((a,c)=>a+c[s],0);
     h+='<div class="bar"><span>'+s+'★</span><div class="track">'+counts.map((c,i)=>'<i style="width:'+(c[s]/mx*100)+'%;background:'+colorOf(ppl[i])+'" title="'+esc(nameOf(ppl[i]))+': '+c[s]+'"></i>').join("")+'</div><span>'+tot+'</span></div>';}
   h+='</div><div class="legend" style="margin-top:10px">'+ppl.map(id=>'<span class="chip" style="--c:'+colorOf(id)+'"><span class="dot"></span>'+esc(nameOf(id))+'</span>').join("")+'</div></div>';
+  { const now=new Date(), months=[];
+    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"));}
+    const cnt={};months.forEach(m=>cnt[m]={});
+    for(const it of all)for(const v of Object.values(it.visits||{})){if(!v||!v.date)continue;const m=v.date.slice(0,7);if(cnt[m])cnt[m][it.kind]=(cnt[m][it.kind]||0)+1;}
+    const tot=m=>Object.values(cnt[m]).reduce((a,b)=>a+b,0), mx=Math.max(1,...months.map(tot));
+    h+='<div class="panel wide"><h3>What we did, month by month</h3>';
+    if(!months.some(m=>tot(m))) h+='<p class="muted">When you mark something as done, its date shows up here.</p>';
+    else{ h+='<div class="bars">'+months.map(m=>{const d=new Date(m+"-01T12:00:00");
+      return '<div class="bar" style="grid-template-columns:56px 1fr 30px"><span>'+d.toLocaleDateString("en-GB",{month:"short",year:"2-digit"})+'</span><div class="track">'+Object.keys(KINDS).map(k=>cnt[m][k]?'<i style="width:'+(cnt[m][k]/mx*100)+'%;background:var('+KINDS[k].color+')" title="'+KINDS[k].label+': '+cnt[m][k]+'"></i>':'').join("")+'</div><span>'+tot(m)+'</span></div>';}).join("")+'</div>'+
+      '<div class="legend" style="margin-top:10px">'+Object.keys(KINDS).map(k=>'<span class="chip" style="--c:var('+KINDS[k].color+')"><span class="dot"></span>'+KINDS[k].label+'</span>').join("")+'</div>'; }
+    h+='</div>'; }
   const waiting=all.filter(i=>{const r=ratingsOf(i);return !(r[me]&&r[me].s>0)&&Object.keys(r).some(k=>k!==me&&r[k].s>0);});
   h+='<div class="panel"><h3>Waiting for your rating</h3>'+(waiting.length?'<ul class="toplist">'+waiting.slice(0,8).map(i=>'<li><button data-open="'+esc(i.id)+'">'+esc(i.title)+'</button><span class="sub">'+KINDS[i.kind].one+'</span></li>').join("")+'</ul>':'<p class="muted">You\'re all caught up.</p>')+'</div>';
   for(const k of Object.keys(KINDS)){
@@ -598,6 +622,7 @@ function openItem(id){
   const done=(it.status||"todo")==="done";
   let h='<div class="shead"><div><h2 id="sheetTitle">'+esc(it.title)+'</h2><p class="muted" style="margin:0">'+esc(metaLine(it)||K.one)+'<span class="status'+(done?' done':'')+'">'+(done?K.done:K.todo)+'</span></p></div><button class="x" data-close aria-label="Close">×</button></div>';
   if(it.notes) h+='<p style="white-space:pre-wrap">'+esc(it.notes)+'</p>';
+  h+='<div class="linksbox"><h3>'+VISIT_LABEL[it.kind]+'</h3><ul class="toplist" id="visitList"></ul><div class="lrow"><input id="visitDate" type="date" aria-label="Date"><button type="button" class="btn" id="visitAdd">Add date</button></div></div>';
   h+='<div class="linksbox"><h3>Links</h3><ul class="toplist" id="linkList"></ul><div class="lrow"><input id="linkUrl" type="url" inputmode="url" placeholder="Paste a link"><input id="linkLabel" type="text" maxlength="80" placeholder="Name (optional)"><button type="button" class="btn" id="linkAdd">Add</button></div><p class="err small" id="linkErr" style="margin:6px 0 0"></p></div>';
   if(K.geo){
     if(hasLoc(it)) h+='<div class="minimap" id="itemMap"></div><p class="small"><a class="link" href="'+mapsLink(it)+'" target="_blank" rel="noopener">Open in Google Maps</a> &nbsp; <a class="link" href="'+dirLink(it)+'" target="_blank" rel="noopener">Directions</a></p>';
@@ -618,6 +643,7 @@ function openItem(id){
   if(sheetUnsub){sheetUnsub();sheetUnsub=null;}
   openSheet(h,"var("+K.color+")");
   const s=$("#sheet");
+  setupVisits(id,s);
   setupLinks(id,s);
   if(K.photos){ ensureThumbs(); setupPhotos(id,s); }
   if(K.geo&&hasLoc(it)){ setTimeout(()=>{ sheetMap=makeMap(s.querySelector("#itemMap"),{zoomControl:false}); sheetMap.setView([it.lat,it.lng],16); pinMarker(it).addTo(sheetMap); sheetMap.invalidateSize(); },60); }
@@ -628,10 +654,37 @@ function openItem(id){
   s.querySelector("#saveRate").addEventListener("click",async e=>{const c=s.querySelector("#myc").value.trim();e.target.disabled=true;
     const ok=await saveRating(id,(stars||c)?{s:stars,c,at:Date.now()}:null);e.target.disabled=false;if(ok){toast("Rating saved");closeSheet();}});
   s.querySelector("#clearRate").addEventListener("click",async()=>{if(await saveRating(id,null)){toast("Rating cleared");closeSheet();}});
-  s.querySelector("#toggleStatus").addEventListener("click",async()=>{if(await write(()=>update(ref(rdb,"items/"+id),{status:done?"todo":"done",updatedAt:Date.now()})))closeSheet();});
+  s.querySelector("#toggleStatus").addEventListener("click",async()=>{
+    const upd={status:done?"todo":"done",updatedAt:Date.now()};
+    if(!done) upd["visits/"+push(ref(rdb,"items")).key]={date:today(),by:me,at:Date.now()};
+    if(await write(()=>update(ref(rdb,"items/"+id),upd))){ toast(done?"Moved back to the list":"Saved with today\'s date"); closeSheet(); }});
   s.querySelector("#editItem").addEventListener("click",()=>openForm(it.kind,it));
   s.querySelector("#delItem").addEventListener("click",async()=>{if(!confirm("Delete \""+it.title+"\" and all its ratings? This can't be undone."))return;
     if(await write(()=>update(ref(rdb),{["items/"+id]:null,["photos/"+id]:null,["thumbs/"+id]:null}))){toast("Deleted");closeSheet();}});
+}
+
+/* ---------- visit dates ---------- */
+const VISIT_LABEL={movie:"Watched on",restaurant:"Visits",place:"Visits",activity:"Done on",recipe:"Cooked on"};
+function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function fmtDate(s){const d=new Date(s+"T12:00:00");return isNaN(d)?s:d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
+function lastVisit(it){let m="";for(const v of Object.values(it.visits||{}))if(v&&v.date&&v.date>m)m=v.date;return m;}
+function setupVisits(id,s){
+  const list=s.querySelector("#visitList"), inp=s.querySelector("#visitDate");
+  inp.value=today();
+  const paint=()=>{
+    const it=items.get(id), V=(it&&it.visits)||{};
+    const keys=Object.keys(V).filter(k=>V[k]&&V[k].date).sort((a,b)=>V[b].date.localeCompare(V[a].date));
+    list.innerHTML=keys.length?keys.map(k=>'<li><span>'+esc(fmtDate(V[k].date))+(V[k].by&&V[k].by!==me?' <span class="muted small">added by '+esc(nameOf(V[k].by))+'</span>':'')+'</span><button type="button" class="ldel" data-k="'+esc(k)+'" aria-label="Remove date">×</button></li>').join(""):'<li class="muted small">No dates yet.</li>';
+    list.querySelectorAll("[data-k]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("Remove this date?"))return;
+      if(await write(()=>remove(ref(rdb,"items/"+id+"/visits/"+b.dataset.k)))) paint();}));
+  };
+  s.querySelector("#visitAdd").addEventListener("click",async()=>{
+    if(!inp.value) return;
+    const upd={["visits/"+push(ref(rdb,"items")).key]:{date:inp.value,by:me,at:Date.now()},updatedAt:Date.now()};
+    const it=items.get(id); if(it&&(it.status||"todo")!=="done") upd.status="done";
+    if(await write(()=>update(ref(rdb,"items/"+id),upd))){ paint(); toast("Date added"); }
+  });
+  paint();
 }
 
 /* ---------- links ---------- */
@@ -740,6 +793,7 @@ function openForm(kind,it){
   if(kind==="activity") h+='<div class="row2">'+f("type","Category","text","Sport, art, course...")+f("area","Where","text","Prato Nevoso, at home...")+'</div>';
   if(kind==="recipe") h+='<div class="row2">'+f("type","Course","text","Primo, dessert...")+f("source","Source","text","Link, book, nonna...")+'</div>';
   h+='<label class="field"><span>Status</span><select name="status"><option value="todo"'+(it.status!=="done"?' selected':'')+'>'+K.todo+'</option><option value="done"'+(it.status==="done"?' selected':'')+'>'+K.done+'</option></select></label>';
+  if(isNew) h+='<label class="field hidden" id="vdateField"><span>Date</span><input name="vdate" type="date" value="'+today()+'"></label>';
   if(K.geo){
     h+='<div class="field"><span>Location</span><div class="locbox">'+
       '<div style="display:flex;gap:6px"><input id="addrQ" type="search" style="flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)" placeholder="Search a name or address"><button type="button" class="btn" id="addrGo">Search</button></div>'+
@@ -754,6 +808,7 @@ function openForm(kind,it){
   if(sheetMap){sheetMap.remove();sheetMap=null;}
   openSheet(h,"var("+K.color+")");
   const s=$("#sheet"), form=s.querySelector("#itemForm");
+  if(isNew){ const vf=s.querySelector("#vdateField"); form.status.addEventListener("change",()=>vf.classList.toggle("hidden",form.status.value!=="done")); }
   let stars=0;
   const paint=()=>s.querySelectorAll(".rate-edit button").forEach(b=>{const n=+b.dataset.s;b.querySelector("path").setAttribute("fill","var("+(n<=stars?"--star":"--star-off")+")");b.setAttribute("aria-checked",n===stars);});
   paint(); s.querySelectorAll(".rate-edit button").forEach(b=>b.addEventListener("click",()=>{stars=(+b.dataset.s===stars)?0:+b.dataset.s;paint();}));
@@ -816,7 +871,8 @@ function openForm(kind,it){
     const btn=form.querySelector("[type=submit]");btn.disabled=true;
     let ok;
     if(isNew){
-      data.createdBy=me;data.createdAt=Date.now();data.ratings={};if(!data.lat&&data.lat!==0){delete data.lat;delete data.lng;}
+      data.createdBy=me;data.createdAt=Date.now();data.ratings={};
+      if(data.status==="done"&&get("vdate")) data.visits={[push(ref(rdb,"items")).key]:{date:get("vdate"),by:me,at:Date.now()}};if(!data.lat&&data.lat!==0){delete data.lat;delete data.lng;}
       const c=get("mycomment"); if(stars||c) data.ratings[me]={s:stars,c,at:Date.now()};
       ok=await write(()=>set(push(ref(rdb,"items")),data));
     } else ok=await write(()=>update(ref(rdb,"items/"+it.id),data));
