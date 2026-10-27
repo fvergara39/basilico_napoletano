@@ -487,7 +487,7 @@ function renderList(v){
   else h+='<div class="list">'+arr.map(it=>{
       const r=ratingsOf(it), done=(it.status||"todo")==="done";
       const ids=[...new Set([...ppl,...Object.keys(r)])].slice(0,3);
-      return '<button class="card" data-id="'+esc(it.id)+'"><p class="t">'+esc(it.title)+'<span class="status'+(done?' done':'')+'">'+(done?K.done+(lastVisit(it)?', '+fmtDate(lastVisit(it)):''):K.todo)+'</span></p>'+
+      return '<button class="card" data-id="'+esc(it.id)+'"><p class="t">'+esc(it.title)+'<span class="status'+(done?' done':'')+'">'+(done?K.done:K.todo)+'</span></p>'+
         '<p class="m">'+esc(metaLine(it))+'</p>'+(K.photos?cardThumbs(it.id):'')+ids.map(id=>rrowHTML(id,r[id])).join("")+'</button>';
     }).join("")+'</div>';
   v.innerHTML=h;
