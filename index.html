@@ -288,7 +288,8 @@ const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).t
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2600);}
 function starsHTML(n,size){let h='<span class="stars" aria-label="'+(n||0)+' of 5 stars">';for(let i=1;i<=5;i++)h+='<svg viewBox="0 0 24 24"'+(size?' style="width:'+size+'px;height:'+size+'px"':'')+'><path d="'+STAR_PATH+'" fill="var('+(i<=n?'--star':'--star-off')+')"/></svg>';return h+'</span>';}
 function ratingsOf(it){const r=it.ratings||{};const out={};for(const k in r){const x=r[k];if(x&&(x.s>0||x.c))out[k]=x;}return out;}
-function avgOf(it){const r=Object.values(ratingsOf(it)).filter(x=>x.s>0);return r.length?r.reduce((a,b)=>a+b.s,0)/r.length:null;}
+function reviewedByMe(it){return !!(it&&ratingsOf(it)[me]);}
+function avgOf(it){if(!reviewedByMe(it))return null;const r=Object.values(ratingsOf(it)).filter(x=>x.s>0);return r.length?r.reduce((a,b)=>a+b.s,0)/r.length:null;}
 function orderedUsers(){return Object.entries(users).sort((a,b)=>(a[1].firstSeen||0)-(b[1].firstSeen||0)).map(e=>e[0]);}
 function colorOf(id){const i=orderedUsers().indexOf(id);return PERSON_COLORS[(i<0?3:i)%PERSON_COLORS.length];}
 function nameOf(id){if(id===me)return "You";const u=users[id];return (u&&u.name)?u.name.split(" ")[0]:"Your partner";}
@@ -459,7 +460,8 @@ function renderPeople(){
     (me?'<button class="btn ghost" id="signout" style="margin-left:10px;padding:6px 10px;font-size:13px">Sign out</button>':'');
   const so=$("#signout"); if(so) so.onclick=()=>{ if(confirm("Sign out?")) signOut(auth); };
 }
-function rrowHTML(id,r){
+function rrowHTML(id,r,hide){
+  if(r&&hide) return '<div class="rrow">'+imgTag(id)+'<span class="none">'+esc(nameOf(id))+' has reviewed it. Add yours to see it</span></div>';
   if(!r) return '<div class="rrow">'+imgTag(id)+'<span class="none">'+(id===me?"You haven't rated it yet":esc(nameOf(id))+" hasn't rated it yet")+'</span></div>';
   return '<div class="rrow">'+imgTag(id)+(r.s>0?starsHTML(r.s):'')+(r.c?'<span class="c">'+esc(r.c)+'</span>':'')+'</div>';
 }
@@ -488,7 +490,7 @@ function renderList(v){
       const r=ratingsOf(it), done=(it.status||"todo")==="done";
       const ids=[...new Set([...ppl,...Object.keys(r)])].slice(0,3);
       return '<button class="card" data-id="'+esc(it.id)+'"><p class="t">'+esc(it.title)+'<span class="status'+(done?' done':'')+'">'+(done?K.done:K.todo)+'</span></p>'+
-        '<p class="m">'+esc(metaLine(it))+'</p>'+(K.photos?cardThumbs(it.id):'')+ids.map(id=>rrowHTML(id,r[id])).join("")+'</button>';
+        '<p class="m">'+esc(metaLine(it))+'</p>'+(K.photos?cardThumbs(it.id):'')+ids.map(id=>rrowHTML(id,r[id],id!==me&&!r[me])).join("")+'</button>';
     }).join("")+'</div>';
   v.innerHTML=h;
   const imp=v.querySelector("#importOld"); if(imp) imp.onclick=importOld;
@@ -647,7 +649,9 @@ function openItem(id){
     '</div>';
   const os=Object.keys(r).filter(k=>k!==me);
   h+='<div class="others">';
-  for(const k of os){const x=r[k];h+='<div class="o"><h3>'+imgTag(k)+esc(nameOf(k))+'</h3>'+(x.s>0?starsHTML(x.s,20):'<span class="muted small">No stars</span>')+(x.c?'<p>'+esc(x.c)+'</p>':'')+'</div>';}
+  for(const k of os){const x=r[k];
+    if(!r[me]){h+='<div class="o"><h3>'+imgTag(k)+esc(nameOf(k))+'</h3><p class="muted small">Has reviewed this. Save your rating to see it.</p></div>';continue;}
+    h+='<div class="o"><h3>'+imgTag(k)+esc(nameOf(k))+'</h3>'+(x.s>0?starsHTML(x.s,20):'<span class="muted small">No stars</span>')+(x.c?'<p>'+esc(x.c)+'</p>':'')+'</div>';}
   if(!os.length) h+='<p class="muted small">'+(others().length?esc(nameOf(others()[0]))+' hasn\'t rated this yet.':'Your partner hasn\'t rated this yet.')+'</p>';
   if(K.photos) h+='<div id="otherPhotos"></div>';
   h+='</div><div class="actions"><button class="btn ghost" id="toggleStatus">Mark as '+(done?K.todo.toLowerCase():K.done.toLowerCase())+'</button><button class="btn ghost" id="editItem">Edit details</button><button class="btn danger" id="delItem">Delete</button></div>';
@@ -738,7 +742,8 @@ function ensureThumbs(){
 }
 function cardThumbs(id){
   const t=thumbs[id]; if(!t) return "";
-  const list=[];for(const u in t)for(const k in t[u])list.push(t[u][k]);
+  const seen=reviewedByMe(items.get(id));
+  const list=[];for(const u in t){if(u!==me&&!seen)continue;for(const k in t[u])list.push(t[u][k]);}
   if(!list.length) return "";
   list.sort((a,b)=>(a.at||0)-(b.at||0));
   return '<div class="cthumbs">'+list.slice(0,4).map(x=>'<img alt="" src="'+esc(x.d)+'">').join("")+(list.length>4?'<span>+'+(list.length-4)+'</span>':'')+'</div>';
@@ -770,7 +775,7 @@ function setupPhotos(id,s){
     if(!mineBox||!oBox) return;
     mineBox.innerHTML=thumbs(all[me],true); fill(mineBox,all[me]||{});
     mineBox.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async()=>{if(confirm("Delete this photo?"))await write(()=>update(ref(rdb),{["photos/"+id+"/"+me+"/"+b.dataset.del]:null,["thumbs/"+id+"/"+me+"/"+b.dataset.del]:null}));}));
-    oBox.innerHTML=Object.keys(all).filter(u=>u!==me&&all[u]).map(u=>'<div class="o" data-u="'+esc(u)+'"><h3>'+imgTag(u)+esc(nameOf(u))+'\'s photos</h3><div class="photos">'+thumbs(all[u],false)+'</div></div>').join("");
+    oBox.innerHTML=Object.keys(all).filter(u=>u!==me&&all[u]&&reviewedByMe(items.get(id))).map(u=>'<div class="o" data-u="'+esc(u)+'"><h3>'+imgTag(u)+esc(nameOf(u))+'\'s photos</h3><div class="photos">'+thumbs(all[u],false)+'</div></div>').join("");
     oBox.querySelectorAll("[data-u]").forEach(el=>fill(el,all[el.dataset.u]||{}));
   };
   const making=new Set();
