@@ -99,7 +99,7 @@ All the settings for your copy live in one small file, `config.js`. It's the onl
    };
 
    /* Name shown until someone picks one in the app */
-   export const DEFAULT_TITLE = "explove";
+   export const DEFAULT_TITLE = "Shared Lists";
    ```
 
 3. Replace the values inside `firebaseConfig` with your project's values from step 2. Keep the word `export` at the start.
