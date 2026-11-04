@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F4F4F8">
 <title>explove</title>
-<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -53,15 +53,18 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--movie);outline-offset:2px}
 .app{max-width:960px;margin:0 auto;padding:0 16px 96px}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 0 8px}
-.brand{font:800 clamp(28px,6vw,40px)/1 var(--display);letter-spacing:-.02em;margin:0}
+.brand-area{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.brand-symbol{display:block;width:40px;height:40px;flex:0 0 auto;border-radius:10px}
+.brand{font:800 clamp(28px,6vw,40px)/1 var(--display);letter-spacing:-.02em;margin:0;min-width:0}
 .brand span{display:inline-block}
-.brand button{all:unset;cursor:text;border-radius:8px}
+.brand button{all:unset;display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;border-radius:8px}
 .brand button:focus-visible{outline:2px solid var(--movie);outline-offset:2px}
 .brand input{font:inherit;letter-spacing:inherit;width:100%;border:0;border-bottom:2px solid var(--line);background:none;color:inherit;padding:0;outline:none}
-.people{display:flex;align-items:center}
+.people{display:flex;align-items:center;flex-shrink:0}
 .people img{width:32px;height:32px;border-radius:50%;border:2px solid var(--bg);margin-left:-8px;background:var(--surface2)}
 .people img:first-child{margin-left:0}
 .people .more{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 6px;border-radius:16px;border:2px solid var(--bg);margin-left:-8px;background:var(--surface2);color:var(--muted);font-size:13px;font-weight:600}
+@media(max-width:480px){.brand-area{gap:8px}.brand-symbol{width:34px;height:34px}}
 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center}
@@ -222,7 +225,10 @@ a.link{color:var(--sec,var(--place));font-weight:600}
 <body>
 <div class="app" id="app">
   <header class="top">
-    <h1 class="brand" id="brand">explove</h1>
+    <div class="brand-area">
+      <img class="brand-symbol" src="icon-192.png" alt="" aria-hidden="true" width="40" height="40">
+      <h1 class="brand" id="brand">explove</h1>
+    </div>
     <div class="people" id="people"></div>
   </header>
   <main id="view"><div class="empty"><strong>Loading</strong>Connecting to your shared lists.</div></main>
