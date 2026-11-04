@@ -61,6 +61,7 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
 .people{display:flex;align-items:center}
 .people img{width:32px;height:32px;border-radius:50%;border:2px solid var(--bg);margin-left:-8px;background:var(--surface2)}
 .people img:first-child{margin-left:0}
+.people .more{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 6px;border-radius:16px;border:2px solid var(--bg);margin-left:-8px;background:var(--surface2);color:var(--muted);font-size:13px;font-weight:600}
 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center}
@@ -237,6 +238,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, onValue, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+/* These values belong to the original author's Firebase project.
+   In your own copy, replace them with your project's values (README, step 5). */
 const firebaseConfig = {
   apiKey: "AIzaSyB-AFAg4obXaBtg7rhDfYnLyRhFQWTdHqE",
   authDomain: "basilico-napoletano.firebaseapp.com",
@@ -251,7 +254,7 @@ const auth = getAuth(fbApp);
 const rdb = getDatabase(fbApp);
 const denied=e=>!!e&&/permission/i.test(String(e.code||"")+" "+String(e.message||""));
 
-/* items carried over from the claude.ai version */
+/* items carried over from the claude.ai version (original author's data: in your own copy, set to [] as in README step 5) */
 const OLD_ITEMS = [{"area": "", "createdAt": 1791897255011, "cuisine": "Libanese", "kind": "restaurant", "lat": 44.406186, "lng": 8.929269, "notes": "", "price": "", "ratings": {}, "status": "done", "title": "Allora", "updatedAt": 1791906084411}, {"area": "", "createdAt": 1791906078330, "cuisine": "Pizza", "kind": "restaurant", "lat": 44.4241, "lng": 8.810437, "notes": "", "price": "", "ratings": {}, "status": "done", "title": "Pria pulla", "updatedAt": 1791906078330}, {"createdAt": 1791897371848, "director": "", "genre": "", "kind": "movie", "notes": "", "ratings": {}, "status": "todo", "title": "Il signore degli anelli", "updatedAt": 1791897371848, "where": "", "year": ""}, {"createdAt": 1791897142765, "director": "", "genre": "", "kind": "movie", "notes": "", "ratings": {}, "status": "todo", "title": "Il pianeta del tesoro", "updatedAt": 1791897142764, "where": "", "year": ""}, {"createdAt": 1791897383026, "director": "", "genre": "", "kind": "movie", "notes": "", "ratings": {}, "status": "todo", "title": "Project hail mary", "updatedAt": 1791897383026, "where": "", "year": ""}];
 
 /* ---------- constants ---------- */
@@ -274,7 +277,7 @@ const ICONS = {
 };
 const TABS = [["movie","Movies"],["restaurant","Restaurants"],["place","Places"],["activity","Activities"],["recipe","Recipes"],["map","Map"],["stats","Stats"]];
 const STAR_PATH = "M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z";
-const PERSON_COLORS = ["#D9480F","#1971C2","#2B8A3E","#AE3EC9"];
+const PERSON_COLORS = ["#D9480F","#1971C2","#2B8A3E","#AE3EC9","#C2255C","#0C8599","#B08900","#5F3DC4"];
 
 /* ---------- state ---------- */
 let me=null, items=new Map(), users={}, appTitle=localStorageGet("title")||DEFAULT_TITLE, editingTitle=false, tab="movie";
@@ -292,7 +295,17 @@ function reviewedByMe(it){return !!(it&&ratingsOf(it)[me]);}
 function avgOf(it){if(!reviewedByMe(it))return null;const r=Object.values(ratingsOf(it)).filter(x=>x.s>0);return r.length?r.reduce((a,b)=>a+b.s,0)/r.length:null;}
 function orderedUsers(){return Object.entries(users).sort((a,b)=>(a[1].firstSeen||0)-(b[1].firstSeen||0)).map(e=>e[0]);}
 function colorOf(id){const i=orderedUsers().indexOf(id);return PERSON_COLORS[(i<0?3:i)%PERSON_COLORS.length];}
-function nameOf(id){if(id===me)return "You";const u=users[id];return (u&&u.name)?u.name.split(" ")[0]:"Your partner";}
+function nameOf(id){
+  if(id===me) return "You";
+  const u=users[id];
+  if(!u||!(u.name||u.email)) return "Someone";
+  if(!u.name) return u.email.split("@")[0];
+  /* first name, plus last initial when two people share a first name */
+  const p=u.name.trim().split(/\s+/), first=p[0];
+  const clash=Object.keys(users).some(k=>k!==id&&users[k]&&users[k].name&&users[k].name.trim().split(/\s+/)[0]===first);
+  return clash&&p.length>1?first+" "+p[p.length-1].charAt(0)+".":first;
+}
+function namesList(ids){const n=ids.map(nameOf);return n.length<=2?n.join(" and "):n.slice(0,2).join(", ")+" and "+(n.length-2)+" more";}
 function avatar(id){
   const u=users[id];
   if(u&&u.photo) return u.photo;
@@ -389,7 +402,7 @@ function start(){
   let gotItems=false;
   const fail=e=>{ if(denied(e)) showSignIn("This account doesn't have access to this app."); else toast("Connection problem. Reload the page."); };
   unsubs.push(onValue(ref(rdb,"users"),s=>{users=s.val()||{};renderPeople();if(gotItems)rerender();},fail));
-  unsubs.push(onValue(ref(rdb,"settings/app"),s=>{const v=s.val(),t=v&&v.title;appTitle=(typeof t==="string"&&t.trim())?t:DEFAULT_TITLE;paintTitle();},()=>{}));
+  unsubs.push(onValue(ref(rdb,"settings/app"),s=>{const v=s.val(),t=v&&v.title,has=typeof t==="string"&&!!t.trim();appTitle=has?t:DEFAULT_TITLE;paintTitle();if(!has)askTitle();},()=>{}));
   unsubs.push(onValue(ref(rdb,"items"),s=>{
     const v=s.val()||{};items=new Map(Object.keys(v).map(k=>[k,Object.assign({id:k},v[k])]));gotItems=true;rerender();
   },fail));
@@ -427,6 +440,22 @@ function editTitle(){
   inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();finish(true);} else if(e.key==="Escape"){finish(false);} });
   inp.addEventListener("blur",()=>finish(true));
 }
+/* First use: no name saved yet, so ask for one. Asked once per device; tap the title to rename later. */
+function askTitle(){
+  if(localStorageGet("titleAsked")||$("#sheet").classList.contains("open")) return;
+  localStorageSet("titleAsked","1");
+  openSheet('<div class="shead"><h2 id="sheetTitle">Name your app</h2><button class="x" data-close aria-label="Close">×</button></div>'+
+    '<form id="titleForm" novalidate><p class="muted" style="margin:0">Pick a title for your shared list. Everyone who uses it will see it at the top of the page, and anyone can change it any time by tapping it.</p>'+
+    '<label class="field"><span>App name</span><input name="appname" type="text" maxlength="60" autofocus value="'+esc(appTitle)+'"></label>'+
+    '<div class="actions"><button class="btn primary" type="submit">Save name</button><button class="btn ghost" type="button" data-close>Not now</button></div></form>',"var(--movie)");
+  const form=$("#titleForm"), inp=form.elements.appname;
+  setTimeout(()=>inp.select(),60);
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const v=inp.value.trim(); if(!v){inp.focus();return;}
+    if(await write(()=>set(ref(rdb,"settings/app"),{title:v,updatedAt:Date.now()}))){toast("Name saved");closeSheet();}
+  });
+}
 
 /* ---------- tabs ---------- */
 function renderTabs(){
@@ -455,13 +484,13 @@ function render(){
   else { fab.classList.add("hidden"); renderStats(v); }
 }
 function renderPeople(){
-  const ids=[me,...others()].filter(Boolean).slice(0,4);
+  const ppl=[me,...others()].filter(Boolean), ids=ppl.slice(0,4), more=ppl.length-ids.length;
   $("#people").innerHTML=ids.map(id=>'<img alt="'+esc(nameOf(id))+'" title="'+esc(nameOf(id))+'" referrerpolicy="no-referrer" src="'+esc(avatar(id))+'">').join("")+
+    (more>0?'<span class="more" title="'+esc(ppl.slice(4).map(nameOf).join(", "))+'">+'+more+'</span>':'')+
     (me?'<button class="btn ghost" id="signout" style="margin-left:10px;padding:6px 10px;font-size:13px">Sign out</button>':'');
   const so=$("#signout"); if(so) so.onclick=()=>{ if(confirm("Sign out?")) signOut(auth); };
 }
-function rrowHTML(id,r,hide){
-  if(r&&hide) return '<div class="rrow">'+imgTag(id)+'<span class="none">'+esc(nameOf(id))+' has reviewed it. Add yours to see it</span></div>';
+function rrowHTML(id,r){
   if(!r) return '<div class="rrow">'+imgTag(id)+'<span class="none">'+(id===me?"You haven't rated it yet":esc(nameOf(id))+" hasn't rated it yet")+'</span></div>';
   return '<div class="rrow">'+imgTag(id)+(r.s>0?starsHTML(r.s):'')+(r.c?'<span class="c">'+esc(r.c)+'</span>':'')+'</div>';
 }
@@ -477,20 +506,25 @@ function renderList(v){
   else if(st.sort==="unrated") arr.sort((a,b)=>((ratingsOf(a)[me]?1:0)-(ratingsOf(b)[me]?1:0))||byRecent(a,b));
   else if(st.sort==="az") arr.sort((a,b)=>a.title.localeCompare(b.title));
   else if(st.sort==="last") arr.sort((a,b)=>lastVisit(b).localeCompare(lastVisit(a))||byRecent(a,b));
-  const ppl=[me,...others()].filter(Boolean).slice(0,2);
+  /* small groups also list who hasn't rated yet; bigger groups only show ratings */
+  const ppl=[me,...others()].filter(Boolean), few=ppl.length<=3;
   let h='';
   if(items.size===0&&OLD_ITEMS.length&&!localStorageGet("imported")) h+='<div class="notice">Bring over the '+OLD_ITEMS.length+' things you added in the claude.ai version? <button class="btn primary" id="importOld" style="margin-left:6px;padding:6px 12px">Import</button></div>';
   h+='<div class="toolbar"><h2>'+K.label+'</h2>'+
     '<div class="seg" role="group" aria-label="Filter">'+[["all","All"],["todo",K.todo],["done",K.done]].map(([k,l])=>'<button data-status="'+k+'" aria-pressed="'+(st.status===k)+'">'+l+'</button>').join("")+'</div></div>'+
     '<div class="toolbar"><input class="search" type="search" placeholder="Search '+K.label.toLowerCase()+'" value="'+esc(st.q)+'" aria-label="Search">'+
     '<select class="sort" aria-label="Sort"><option value="recent">Newest first</option><option value="top">Highest rated</option><option value="unrated">Not rated by me</option><option value="last">Most recently done</option><option value="az">A to Z</option></select></div>';
-  if(!total) h+='<div class="empty"><strong>No '+K.label.toLowerCase()+' yet</strong>Add the first '+K.one+' with the button below. You can both rate it and leave a comment.</div>';
+  if(!total) h+='<div class="empty"><strong>No '+K.label.toLowerCase()+' yet</strong>Add the first '+K.one+' with the button below. Everyone can rate it and leave a comment.</div>';
   else if(!arr.length) h+='<div class="empty"><strong>Nothing matches</strong>Try a different search or filter.</div>';
   else h+='<div class="list">'+arr.map(it=>{
       const r=ratingsOf(it), done=(it.status||"todo")==="done";
-      const ids=[...new Set([...ppl,...Object.keys(r)])].slice(0,3);
+      const raters=Object.keys(r).filter(x=>x!==me);
+      let rows=rrowHTML(me,r[me]);
+      if(raters.length&&!r[me]) rows+='<div class="rrow">'+imgTag(raters[0])+'<span class="none">'+esc(namesList(raters))+(raters.length===1?' has':' have')+' reviewed it. Add yours to see '+(raters.length===1?'it':'them')+'</span></div>';
+      else rows+=raters.slice(0,3).map(id=>rrowHTML(id,r[id])).join("")+(raters.length>3?'<div class="rrow"><span class="none">+'+(raters.length-3)+' more</span></div>':'');
+      if(few) rows+=ppl.filter(id=>id!==me&&!r[id]).map(id=>rrowHTML(id,null)).join("");
       return '<button class="card" data-id="'+esc(it.id)+'"><p class="t">'+esc(it.title)+'<span class="status'+(done?' done':'')+'">'+(done?K.done:K.todo)+'</span></p>'+
-        '<p class="m">'+esc(metaLine(it))+'</p>'+(K.photos?cardThumbs(it.id):'')+ids.map(id=>rrowHTML(id,r[id],id!==me&&!r[me])).join("")+'</button>';
+        '<p class="m">'+esc(metaLine(it))+'</p>'+(K.photos?cardThumbs(it.id):'')+rows+'</button>';
     }).join("")+'</div>';
   v.innerHTML=h;
   const imp=v.querySelector("#importOld"); if(imp) imp.onclick=importOld;
@@ -552,20 +586,27 @@ function renderStats(v){
   }).join("")+'</div></div>';
   h+='<div class="panel"><h3>Who rates what</h3>';
   for(const id of ppl){
-    const rs=all.map(i=>ratingsOf(i)[id]).filter(r=>r&&r.s>0);
+    const rs=all.map(i=>ratingsOf(i)[id]).filter(r=>r&&r.s>0), nc=all.filter(i=>{const r=ratingsOf(i)[id];return r&&r.c;}).length;
     const avg=rs.length?(rs.reduce((a,b)=>a+b.s,0)/rs.length):null;
-    h+='<div class="prow">'+imgTag(id)+'<div class="n">'+esc(nameOf(id))+'<div class="muted small">'+rs.length+' rating'+(rs.length===1?'':'s')+', '+all.filter(i=>{const r=ratingsOf(i)[id];return r&&r.c;}).length+' comments</div></div><div class="v">'+(avg===null?'–':avg.toFixed(1)+' ★')+'</div></div>';
+    h+='<div class="prow">'+imgTag(id)+'<div class="n">'+esc(nameOf(id))+'<div class="muted small">'+rs.length+' rating'+(rs.length===1?'':'s')+', '+nc+' comment'+(nc===1?'':'s')+'</div></div><div class="v">'+(avg===null?'–':avg.toFixed(1)+' ★')+'</div></div>';
   }
   h+='</div>';
-  const both=[]; const partner=others()[0];
-  if(partner) for(const it of all){const r=ratingsOf(it);if(r[me]&&r[me].s>0&&r[partner]&&r[partner].s>0)both.push({it,a:r[me].s,b:r[partner].s,d:Math.abs(r[me].s-r[partner].s)});}
+  /* your stars compared with each other person's, on the things you both rated */
+  const pairs=[];
+  for(const it of all){const r=ratingsOf(it);if(!(r[me]&&r[me].s>0))continue;
+    for(const o of Object.keys(r))if(o!==me&&r[o].s>0)pairs.push({it,o,a:r[me].s,b:r[o].s,d:Math.abs(r[me].s-r[o].s)});}
+  const agree=p=>({pct:Math.round(p.filter(x=>x.d===0).length/p.length*100),md:p.reduce((a,b)=>a+b.d,0)/p.length});
   h+='<div class="panel"><h3>How much we agree</h3>';
-  if(!both.length) h+='<p class="muted">Once you\'ve both rated the same thing, you\'ll see how close your ratings are.</p>';
+  if(!pairs.length) h+='<p class="muted">Once you and someone else have rated the same thing, you\'ll see how close your ratings are.</p>';
   else{
-    const md=both.reduce((a,b)=>a+b.d,0)/both.length, same=both.filter(x=>x.d===0).length;
-    h+='<div class="big">'+Math.round(same/both.length*100)+'%</div><p class="muted small" style="margin:4px 0 12px">of the '+both.length+' things you both rated got exactly the same stars. On average you are '+md.toFixed(1)+' stars apart.</p>';
-    const dis=both.filter(x=>x.d>0).sort((a,b)=>b.d-a.d).slice(0,3);
-    if(dis.length) h+='<p class="small" style="margin:0 0 4px;font-weight:600">Biggest disagreements</p><ul class="toplist">'+dis.map(x=>'<li><button data-open="'+esc(x.it.id)+'">'+esc(x.it.title)+'</button><span class="sub">'+x.a+'★ vs '+x.b+'★</span></li>').join("")+'</ul>';
+    const g=agree(pairs), withWho=[...new Set(pairs.map(x=>x.o))];
+    h+='<div class="big">'+g.pct+'%</div><p class="muted small" style="margin:4px 0 12px">'+
+      (withWho.length===1?'of the '+pairs.length+' things you both rated got exactly the same stars.':'of the '+pairs.length+' times you and someone else rated the same thing, you gave exactly the same stars.')+
+      ' On average you are '+g.md.toFixed(1)+' stars apart.</p>';
+    if(withWho.length>1) h+='<div style="margin-bottom:12px">'+withWho.map(o=>{const p=pairs.filter(x=>x.o===o);return {o,n:p.length,...agree(p)};}).sort((a,b)=>b.pct-a.pct||a.md-b.md)
+      .map(x=>'<div class="prow">'+imgTag(x.o)+'<div class="n">'+esc(nameOf(x.o))+'<div class="muted small">'+x.n+' in common, '+x.md.toFixed(1)+' stars apart</div></div><div class="v">'+x.pct+'%</div></div>').join("")+'</div>';
+    const seen=new Set(), dis=pairs.filter(x=>x.d>0).sort((a,b)=>b.d-a.d).filter(x=>!seen.has(x.it.id)&&seen.add(x.it.id)).slice(0,3);
+    if(dis.length) h+='<p class="small" style="margin:0 0 4px;font-weight:600">Biggest disagreements</p><ul class="toplist">'+dis.map(x=>'<li><button data-open="'+esc(x.it.id)+'">'+esc(x.it.title)+'</button><span class="sub">'+x.a+'★ vs '+x.b+'★'+(withWho.length>1?' ('+esc(nameOf(x.o))+')':'')+'</span></li>').join("")+'</ul>';
   }
   h+='</div>';
   h+='<div class="panel"><h3>Star distribution</h3><div class="bars">';
@@ -652,7 +693,7 @@ function openItem(id){
   for(const k of os){const x=r[k];
     if(!r[me]){h+='<div class="o"><h3>'+imgTag(k)+esc(nameOf(k))+'</h3><p class="muted small">Has reviewed this. Save your rating to see it.</p></div>';continue;}
     h+='<div class="o"><h3>'+imgTag(k)+esc(nameOf(k))+'</h3>'+(x.s>0?starsHTML(x.s,20):'<span class="muted small">No stars</span>')+(x.c?'<p>'+esc(x.c)+'</p>':'')+'</div>';}
-  if(!os.length) h+='<p class="muted small">'+(others().length?esc(nameOf(others()[0]))+' hasn\'t rated this yet.':'Your partner hasn\'t rated this yet.')+'</p>';
+  if(!os.length) h+='<p class="muted small">'+(others().length===1?esc(nameOf(others()[0]))+' hasn\'t rated this yet.':'Nobody else has rated this yet.')+'</p>';
   if(K.photos) h+='<div id="otherPhotos"></div>';
   h+='</div><div class="actions"><button class="btn ghost" id="toggleStatus">Mark as '+(done?K.todo.toLowerCase():K.done.toLowerCase())+'</button><button class="btn ghost" id="editItem">Edit details</button><button class="btn danger" id="delItem">Delete</button></div>';
   if(sheetMap){sheetMap.remove();sheetMap=null;}
