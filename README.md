@@ -229,7 +229,7 @@ You're free to use, copy and adapt this project. If you do:
 - credit the original author, for example with this line in your README:
 
   ```markdown
-  Based on [Shared Lists](https://github.com/fvergara39/shared-list) by [Francesca Vergara](https://github.com/fvergara39).
+  Based on [Shared Lists](https://github.com/fvergara39/explove) by [Francesca Vergara](https://github.com/fvergara39).
   ```
 
 ## Credits
