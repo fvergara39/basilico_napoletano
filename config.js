@@ -13,7 +13,7 @@ export const firebaseConfig = {
 };
 
 /* Name shown until someone picks one in the app */
-export const DEFAULT_TITLE = "explove";
+export const DEFAULT_TITLE = "Basilico napoletano";
 
 /* Items carried over from the claude.ai version of the original app.
    Only the original author needs this: leave it out of your copy. */
