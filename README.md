@@ -77,35 +77,35 @@ The example lets three people in. To add a person, add another `|| auth.token.em
 
 Anyone who isn't on the list and tries to sign in will see "doesn't have access to this app". You can come back and change the list whenever someone joins or leaves the group.
 
-### 5. Put your configuration in `index.html`
+### 5. Put your configuration in `config.js`
 
-1. In your repo on GitHub, open `index.html` and click the **pencil** icon (Edit).
-2. Find the `const firebaseConfig = {` block near the top of the script. The values already there belong to the original author's Firebase project, and they won't work for you.
-3. Replace them with your project's values from step 2.
+All the settings for your copy live in one small file, `config.js`. It's the only file you need to change. Right now it holds the original author's Firebase project and data, so you replace all of it.
+
+1. In your repo on GitHub, open `config.js` and click the **pencil** icon (Edit).
+2. Delete everything in the file and paste this in its place:
+
+   ```js
+   /* Settings for this copy of the app. */
+
+   /* Your Firebase project (Firebase console → Project settings → General → Your apps) */
+   export const firebaseConfig = {
+     apiKey: "...",
+     authDomain: "your-project.firebaseapp.com",
+     databaseURL: "https://your-project-default-rtdb.europe-west1.firebasedatabase.app",
+     projectId: "your-project",
+     storageBucket: "your-project.firebasestorage.app",
+     messagingSenderId: "...",
+     appId: "..."
+   };
+
+   /* Name shown until someone picks one in the app */
+   export const DEFAULT_TITLE = "Shared Lists";
+   ```
+
+3. Replace the values inside `firebaseConfig` with your project's values from step 2. Keep the word `export` at the start.
+4. Click **Commit changes**.
 
 The block must also include `databaseURL`. If Firebase didn't show it to you, you'll find it at the top of the Realtime Database page (e.g. `https://your-project-default-rtdb.europe-west1.firebasedatabase.app`).
-
-```js
-const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "your-project.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "your-project",
-  storageBucket: "your-project.firebasestorage.app",
-  messagingSenderId: "...",
-  appId: "..."
-};
-```
-
-In the same file, find the line starting with `const OLD_ITEMS =` and replace it with:
-
-```js
-const OLD_ITEMS = [];
-```
-
-It was used to import the original author's data, and you don't need it.
-
-Finally, click **Commit changes**.
 
 The `firebaseConfig` values aren't secrets and can safely live in a public repo: security comes from the rules in step 4.
 
@@ -159,7 +159,7 @@ If you change the icons, remove the home screen shortcut and add it again to see
 
 - **App name:** choose it on first sign-in, or tap the title at the top of the app at any time to type a new one. No code changes needed.
 - **Default name and home screen name (optional):** the title you choose in the app doesn't change the default name or the name under the home screen icon. To change those too, edit:
-  - `DEFAULT_TITLE` and `<title>` in `index.html` (shown before anyone has chosen a name);
+  - `DEFAULT_TITLE` in `config.js` (shown before anyone has chosen a name);
   - `apple-mobile-web-app-title` in `index.html` (name under the icon on iPhone);
   - `name` and `short_name` in `manifest.webmanifest` (name under the icon on Android).
 - **Who can get in:** edit the email list in the Realtime Database rules (step 4).
@@ -168,7 +168,7 @@ If you change the icons, remove the home screen shortcut and add it again to see
 
 ## Updating the app
 
-Every change to `index.html` on GitHub is published in about a minute. To see the new version right away:
+Every change you commit on GitHub is published in about a minute. To see the new version right away:
 - on a computer, reload with **Ctrl+Shift+R** (**Cmd+Shift+R** on Mac);
 - on a phone, close and reopen the app.
 
@@ -195,8 +195,10 @@ Everything runs on free plans.
 | What happens | What to check |
 |---|---|
 | "…doesn't have access to this app" | Is the email spelled correctly and in lowercase on **both** lines of the Realtime Database rules? Did you click **Publish**? The rules go in the *Realtime Database*, not in Firestore. |
-| Google sign-in doesn't open or shows an error | Is `YOUR-USERNAME.github.io` in the **authorized domains** (step 8)? Is the Google provider enabled (step 6)? |
-| "Connection problem", or the list doesn't load | Is `databaseURL` in `firebaseConfig` correct? Does the Realtime Database exist? |
+| "This site isn't authorized in Firebase yet", or Google sign-in doesn't open | Is `YOUR-USERNAME.github.io` in the **authorized domains** (step 8)? Is the Google provider enabled (step 6)? Does `config.js` have your project's values, not the original author's (step 5)? |
+| "Sign-in failed: auth/api-key-not-valid…" | There's a typo in `apiKey` in `config.js`. Paste your project's `firebaseConfig` again (step 5). |
+| "Connection problem", or the list doesn't load | Is `databaseURL` in `config.js` correct? Does the Realtime Database exist? |
+| The page stays blank | Open `config.js` and check that it still starts with `export const firebaseConfig = {` and that every value is in quotes. |
 | On iPhone, from the home screen app, sign-in doesn't return to the app | In `index.html`, delete the line `<meta name="apple-mobile-web-app-capable" content="yes">`. In the manifest, change `"display": "standalone"` to `"display": "browser"`. Then add the app to the home screen again. |
 | I still see the old version | Reload with Ctrl+Shift+R, or close and reopen the app. GitHub Pages can take a couple of minutes. |
 | The map is grey | Check your connection. If OpenStreetMap is having temporary issues, try again later. |
@@ -208,6 +210,7 @@ Everything runs on free plans.
 ## Repository layout
 
 ```
+config.js               your settings: Firebase project and default name (the only file to edit)
 index.html              the app (HTML, CSS and JavaScript in a single file)
 manifest.webmanifest    name and icons for installing on a phone
 apple-touch-icon.png    iPhone icon (180×180)

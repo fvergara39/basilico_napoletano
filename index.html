@@ -237,28 +237,20 @@ a.link{color:var(--sec,var(--place));font-weight:600}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, onValue, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import * as config from "./config.js";
 
-/* These values belong to the original author's Firebase project.
-   In your own copy, replace them with your project's values (README, step 5). */
-const firebaseConfig = {
-  apiKey: "AIzaSyB-AFAg4obXaBtg7rhDfYnLyRhFQWTdHqE",
-  authDomain: "basilico-napoletano.firebaseapp.com",
-  databaseURL: "https://basilico-napoletano-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "basilico-napoletano",
-  storageBucket: "basilico-napoletano.firebasestorage.app",
-  messagingSenderId: "893470078028",
-  appId: "1:893470078028:web:92a972a52dba45616a30e9"
-};
+/* Personal settings (Firebase project, default name) live in config.js */
+const firebaseConfig = config.firebaseConfig;
 const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const rdb = getDatabase(fbApp);
 const denied=e=>!!e&&/permission/i.test(String(e.code||"")+" "+String(e.message||""));
 
-/* items carried over from the claude.ai version (original author's data: in your own copy, set to [] as in README step 5) */
-const OLD_ITEMS = [{"area": "", "createdAt": 1791897255011, "cuisine": "Libanese", "kind": "restaurant", "lat": 44.406186, "lng": 8.929269, "notes": "", "price": "", "ratings": {}, "status": "done", "title": "Allora", "updatedAt": 1791906084411}, {"area": "", "createdAt": 1791906078330, "cuisine": "Pizza", "kind": "restaurant", "lat": 44.4241, "lng": 8.810437, "notes": "", "price": "", "ratings": {}, "status": "done", "title": "Pria pulla", "updatedAt": 1791906078330}, {"createdAt": 1791897371848, "director": "", "genre": "", "kind": "movie", "notes": "", "ratings": {}, "status": "todo", "title": "Il signore degli anelli", "updatedAt": 1791897371848, "where": "", "year": ""}, {"createdAt": 1791897142765, "director": "", "genre": "", "kind": "movie", "notes": "", "ratings": {}, "status": "todo", "title": "Il pianeta del tesoro", "updatedAt": 1791897142764, "where": "", "year": ""}, {"createdAt": 1791897383026, "director": "", "genre": "", "kind": "movie", "notes": "", "ratings": {}, "status": "todo", "title": "Project hail mary", "updatedAt": 1791897383026, "where": "", "year": ""}];
+/* one-time import of old data: only the original author's config.js sets it */
+const OLD_ITEMS = Array.isArray(config.OLD_ITEMS) ? config.OLD_ITEMS : [];
 
 /* ---------- constants ---------- */
-const DEFAULT_TITLE = "Basilico napoletano";
+const DEFAULT_TITLE = config.DEFAULT_TITLE || "Shared Lists";
 const KINDS = {
   movie:{label:"Movies", one:"movie", color:"--movie", todo:"Watchlist", done:"Watched", geo:false},
   restaurant:{label:"Restaurants", one:"restaurant", color:"--restaurant", todo:"Want to try", done:"Been there", geo:true},
@@ -378,6 +370,7 @@ function showSignIn(msg){
     const p=new GoogleAuthProvider(); p.setCustomParameters({prompt:"select_account"});
     try{await signInWithPopup(auth,p);}
     catch(e){ if(e&&(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment")) await signInWithRedirect(auth,p);
+      else if(e&&e.code==="auth/unauthorized-domain") toast("This site isn't authorized in Firebase yet. See the README, step 8.");
       else if(e&&e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request") toast("Sign-in failed: "+(e.code||"unknown error")); }
   };
   const so=$("#signout2"); if(so) so.onclick=()=>signOut(auth);
