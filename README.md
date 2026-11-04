@@ -1,4 +1,4 @@
-# 🌿 Shared Lists
+# 🌿 explove
 
 A free, private web app for a group of people to keep shared lists of **movies, restaurants, places, activities and recipes**: what you want to do, what you've already done, and how you liked it.
 
@@ -6,7 +6,7 @@ It works for any small group: friends, family, flatmates, or just two people. Ev
 
 It runs in the browser, on a computer or a phone. You can add it to your home screen like an app, iPhone included. Nothing to install and no code to write: all you need is a GitHub account and a free Firebase project.
 
-**Make it yours:** the first time you sign in, the app asks you to **choose a title**, so your copy can have any name you like. The original copy is called *Basilico napoletano*.
+**Make it yours:** the first time you sign in, the app asks you to **choose a title**, so your copy can have any name you like. The app was first called *Basilico napoletano*.
 
 > **Want to use it? Make your own copy.** This repository runs the author's own app, connected to the author's Firebase project, and only the author's accounts can sign in to it. To use the app, create your own copy in your GitHub account and connect it to your own free Firebase project, as described in [Setup](#setup). Please keep the credit to the original author (see [License and credit](#license-and-credit)).
 
@@ -99,7 +99,7 @@ All the settings for your copy live in one small file, `config.js`. It's the onl
    };
 
    /* Name shown until someone picks one in the app */
-   export const DEFAULT_TITLE = "Shared Lists";
+   export const DEFAULT_TITLE = "explove";
    ```
 
 3. Replace the values inside `firebaseConfig` with your project's values from step 2. Keep the word `export` at the start.
@@ -229,7 +229,7 @@ You're free to use, copy and adapt this project. If you do:
 - credit the original author, for example with this line in your README:
 
   ```markdown
-  Based on [Shared Lists](https://github.com/fvergara39/explove) by [Francesca Vergara](https://github.com/fvergara39).
+  Based on [explove](https://github.com/fvergara39/explove) by [Francesca Vergara](https://github.com/fvergara39).
   ```
 
 ## Credits

@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F4F4F8">
-<title>Basilico napoletano</title>
+<title>explove</title>
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Basilico">
+<meta name="apple-mobile-web-app-title" content="explove">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -222,7 +222,7 @@ a.link{color:var(--sec,var(--place));font-weight:600}
 <body>
 <div class="app" id="app">
   <header class="top">
-    <h1 class="brand" id="brand">Basilico napoletano</h1>
+    <h1 class="brand" id="brand">explove</h1>
     <div class="people" id="people"></div>
   </header>
   <main id="view"><div class="empty"><strong>Loading</strong>Connecting to your shared lists.</div></main>
@@ -250,7 +250,7 @@ const denied=e=>!!e&&/permission/i.test(String(e.code||"")+" "+String(e.message|
 const OLD_ITEMS = Array.isArray(config.OLD_ITEMS) ? config.OLD_ITEMS : [];
 
 /* ---------- constants ---------- */
-const DEFAULT_TITLE = config.DEFAULT_TITLE || "Shared Lists";
+const DEFAULT_TITLE = config.DEFAULT_TITLE || "explove";
 const KINDS = {
   movie:{label:"Movies", one:"movie", color:"--movie", todo:"Watchlist", done:"Watched", geo:false},
   restaurant:{label:"Restaurants", one:"restaurant", color:"--restaurant", todo:"Want to try", done:"Been there", geo:true},
