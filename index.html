@@ -220,16 +220,32 @@ a.link{color:var(--sec,var(--place));font-weight:600}
 .leaflet-container{font-family:var(--body);background:var(--sea)}
 .leaflet-tooltip{font-weight:600}
 .people{gap:0}
+
+/* look (personal appearance panel) */
+.hd-r{display:flex;align-items:center;gap:10px}
+.look-btn{width:36px;height:36px;flex:none;border:0;border-radius:50%;background:var(--surface2);color:var(--ink);display:grid;place-items:center}
+.look-btn svg{width:20px;height:20px}
+.look-grp{font:700 16px/1.2 var(--display);margin:18px 0 6px}
+.lk-presets{display:flex;flex-wrap:wrap;gap:6px}
+.lk-presets .btn{padding:7px 12px;font-size:14px}
+.lk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.lk-c{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:6px 10px 6px 6px;background:var(--surface);font-size:14px;font-weight:600;cursor:pointer;min-width:0}
+.lk-c span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lk-c input[type=color]{width:34px;height:34px;flex:none;border:0;padding:0;background:none;cursor:pointer}
+.lk-c input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.lk-c input[type=color]::-webkit-color-swatch{border:1px solid var(--line);border-radius:8px}
+.lk-c input[type=color]::-moz-color-swatch{border:1px solid var(--line);border-radius:8px}
+.field input[type=range]{padding:0;border:0;background:none;width:100%;accent-color:var(--movie)}
 </style>
 </head>
 <body>
 <div class="app" id="app">
   <header class="top">
-    <div class="brand-area">
-      <img class="brand-symbol" src="icon-192.png" alt="" aria-hidden="true" width="40" height="40">
-      <h1 class="brand" id="brand">explove</h1>
+    <h1 class="brand" id="brand">explove</h1>
+    <div class="hd-r">
+      <div class="people" id="people"></div>
+      <button class="look-btn" id="lookBtn" type="button" title="Change the look" aria-label="Change the look"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.6-.7 1.6-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4c0-4.4-4-7.4-9-7.4z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/></svg></button>
     </div>
-    <div class="people" id="people"></div>
   </header>
   <main id="view"><div class="empty"><strong>Loading</strong>Connecting to your shared lists.</div></main>
 </div>
@@ -342,6 +358,140 @@ function parseLoc(s){
   if((m=s.match(/^\(?\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*\)?$/))) return ok(m[1],m[2]);
   return {error:"Couldn't read a location from that. Paste coordinates like 44.4056, 8.9463 or a full Google Maps link."};
 }
+
+/* ---------- look (personal appearance, saved on this device only) ---------- */
+/* Defaults mirror the :root values in the stylesheet above. Only changes are saved. */
+const LOOK_DEFAULTS = {
+  light:{bg:"#F4F4F8",surface:"#FFFFFF",surface2:"#EBEAF2",ink:"#1E1B33",muted:"#6C6883",line:"#DCDAE6",movie:"#5B3CC4",restaurant:"#B4235A",place:"#0E7C86",activity:"#C05621",recipe:"#2F855A",star:"#F2B705"},
+  dark:{bg:"#15131F",surface:"#1F1C2C",surface2:"#282437",ink:"#EEEAF8",muted:"#A39EB8",line:"#363149",movie:"#9C84F0",restaurant:"#EE6A98",place:"#3BC2CC",activity:"#F59E5B",recipe:"#68D391",star:"#F5C431"}
+};
+const LOOK_COLORS = [["bg","Background"],["surface","Cards"],["surface2","Buttons & chips"],["ink","Text"],["muted","Secondary text"],["line","Lines"],["movie","Movies"],["restaurant","Restaurants"],["place","Places"],["activity","Activities"],["recipe","Recipes"],["star","Stars"]];
+const LOOK_ACCENTS = ["movie","restaurant","place","activity","recipe","star"];
+const LOOK_PRESETS = {
+  "Original":null,
+  "Ocean":{movie:"#1F6FB2",restaurant:"#0B7285",place:"#2B8A9E",activity:"#3B5BDB",recipe:"#1C7C6B",star:"#F59F00"},
+  "Forest":{movie:"#2F6B3A",restaurant:"#8A5A1F",place:"#3C7A4A",activity:"#7C7A2E",recipe:"#2E8B57",star:"#E8B43A"},
+  "Sunset":{movie:"#C2410C",restaurant:"#D6336C",place:"#E8590C",activity:"#F08C00",recipe:"#B5484F",star:"#FAB005"},
+  "Berry":{movie:"#7048E8",restaurant:"#C2255C",place:"#9C36B5",activity:"#E64980",recipe:"#5F3DC4",star:"#FCC419"}
+};
+/* Google Fonts: spec is the family part of the css2 URL (only weights each font has) */
+const LOOK_FONTS = [
+  {name:"Inter",spec:"Inter:wght@400;600;700;800",stack:"sans-serif"},
+  {name:"Roboto",spec:"Roboto:wght@400;500;700",stack:"sans-serif"},
+  {name:"Open Sans",spec:"Open+Sans:wght@400;600;700;800",stack:"sans-serif"},
+  {name:"Lato",spec:"Lato:wght@400;700",stack:"sans-serif"},
+  {name:"Nunito",spec:"Nunito:wght@400;600;700;800",stack:"sans-serif"},
+  {name:"Poppins",spec:"Poppins:wght@400;600;700;800",stack:"sans-serif"},
+  {name:"Montserrat",spec:"Montserrat:wght@400;600;700;800",stack:"sans-serif"},
+  {name:"Space Grotesk",spec:"Space+Grotesk:wght@400;500;600;700",stack:"sans-serif"},
+  {name:"Quicksand",spec:"Quicksand:wght@400;500;600;700",stack:"sans-serif"},
+  {name:"Caveat",spec:"Caveat:wght@400;600;700",stack:"cursive"},
+  {name:"Merriweather",spec:"Merriweather:wght@400;700",stack:"serif"},
+  {name:"Lora",spec:"Lora:wght@400;600;700",stack:"serif"},
+  {name:"Playfair Display",spec:"Playfair+Display:wght@400;600;700;800",stack:"serif"},
+  {name:"Fraunces",spec:"Fraunces:wght@400;600;700;800",stack:"serif"},
+  {name:"DM Serif Display",spec:"DM+Serif+Display",stack:"serif"},
+  {name:"System UI",stack:'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif'},
+  {name:"Georgia",stack:"Georgia,serif"}
+];
+const sysDark=()=>window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+/* look = {mode:"auto"|"light"|"dark", light:{colour overrides}, dark:{...}, display, body (font names), size, radius} */
+function readLook(){ try{ const v=JSON.parse(localStorageGet("look")||"null"); return v&&typeof v==="object"?v:{}; }catch(e){ return {}; } }
+function saveLook(l){ localStorageSet("look",JSON.stringify(l)); }
+function lookTarget(look){ return look.mode==="light"||look.mode==="dark" ? look.mode : (sysDark()?"dark":"light"); }
+function fontStack(name){
+  if(!name) return null;
+  const f=LOOK_FONTS.find(x=>x.name===name);
+  if(!f) return null;
+  return f.spec ? '"'+f.name+'",'+f.stack : f.stack;
+}
+function loadLookFonts(look){
+  const specs=[...new Set([look.display,look.body].filter(Boolean))]
+    .map(n=>LOOK_FONTS.find(x=>x.name===n)).filter(f=>f&&f.spec).map(f=>"family="+f.spec);
+  let link=document.getElementById("look-fonts");
+  if(!specs.length){ if(link) link.remove(); return; }
+  if(!link){ link=document.createElement("link"); link.id="look-fonts"; link.rel="stylesheet"; document.head.appendChild(link); }
+  link.href="https://fonts.googleapis.com/css2?"+specs.join("&")+"&display=swap";
+}
+function applyLook(look){
+  const root=document.documentElement;
+  if(look.mode==="light"||look.mode==="dark") root.setAttribute("data-theme",look.mode); else root.removeAttribute("data-theme");
+  const vars=o=>Object.keys(o||{}).filter(k=>k in LOOK_DEFAULTS.light).map(k=>"--"+k+":"+o[k]+";").join("");
+  const L=vars(look.light), D=vars(look.dark);
+  let css="";
+  if(L) css+=":root{"+L+"}\n";
+  /* same selectors as the built-in dark theme, so they win over it */
+  if(D) css+=':root[data-theme="dark"]{'+D+'}\n@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){'+D+'}}\n';
+  let r=":root{";
+  const dsp=fontStack(look.display), bdy=fontStack(look.body);
+  if(dsp) r+="--display:"+dsp+";";
+  if(bdy) r+="--body:"+bdy+";";
+  if(look.radius!=null) r+="--radius:"+look.radius+"px;";
+  r+="}";
+  if(look.radius!=null) r+=".card,.linksbox,.panel,.myrate,.others .o,.empty,.notice,.locbox{border-radius:var(--radius)}.btn,.search,.field input,.field textarea,.field select,.linksbox .lrow input,.seg{border-radius:calc(var(--radius)*.7)}";
+  if(look.size && +look.size!==16) r+="body{font-size:"+(+look.size)+"px}";
+  let st=document.getElementById("look-css");
+  if(!st){ st=document.createElement("style"); st.id="look-css"; document.head.appendChild(st); }
+  st.textContent=css+r;
+  loadLookFonts(look);
+  const eff=look.mode==="light"||look.mode==="dark" ? look.mode : (sysDark()?"dark":"light");
+  const bg=(look[eff]&&look[eff].bg)||LOOK_DEFAULTS[eff].bg;
+  const meta=document.querySelector('meta[name="theme-color"]'); if(meta) meta.content=bg;
+}
+function saveAndApply(look){ saveLook(look); applyLook(look); }
+function paintLook(){
+  const look=readLook(), mode=look.mode||"auto", m=lookTarget(look);
+  const pal=Object.assign({},LOOK_DEFAULTS[m],look[m]||{});
+  const seg=[["auto","Auto"],["light","Light"],["dark","Dark"]].map(([k,l])=>'<button type="button" data-lk="mode" data-v="'+k+'" aria-pressed="'+(mode===k)+'">'+l+'</button>').join("");
+  const presets=Object.keys(LOOK_PRESETS).map(n=>'<button type="button" class="btn ghost" data-lk="preset" data-v="'+esc(n)+'">'+esc(n)+'</button>').join("");
+  const colors=LOOK_COLORS.map(([k,l])=>'<label class="lk-c"><input type="color" data-c="'+k+'" value="'+pal[k]+'" aria-label="'+esc(l)+'"><span>'+esc(l)+'</span></label>').join("");
+  const fontOpts=cur=>'<option value="">Default</option>'+LOOK_FONTS.map(f=>'<option value="'+esc(f.name)+'"'+(cur===f.name?' selected':'')+'>'+esc(f.name)+'</option>').join("");
+  const size=+look.size||16, radius=look.radius==null?14:+look.radius;
+  openSheet(
+    '<div class="shead"><h2 id="sheetTitle">Look</h2><button class="x" data-close aria-label="Close">×</button></div>'+
+    '<p class="muted small" style="margin:0">Changes how the app looks on this device only. Your lists stay the same for everyone.</p>'+
+    '<div class="look-grp">Mode</div><div class="seg" role="group" aria-label="Mode">'+seg+'</div>'+
+    '<div class="look-grp">Colours <span class="muted small" style="font-weight:500">('+(m==="dark"?"dark":"light")+' mode'+(mode==="auto"?", follows your device":"")+')</span></div>'+
+    '<div class="lk-presets" style="margin-bottom:10px">'+presets+'</div>'+
+    '<div class="lk-grid">'+colors+'</div>'+
+    '<div class="look-grp">Fonts</div>'+
+    '<div class="row2"><label class="field"><span>Headings</span><select id="lkDisplay">'+fontOpts(look.display||"")+'</select></label>'+
+    '<label class="field"><span>Text</span><select id="lkBody">'+fontOpts(look.body||"")+'</select></label></div>'+
+    '<div class="look-grp">Shape & size</div>'+
+    '<label class="field"><span>Text size: <b id="lkSizeV">'+size+'</b>px</span><input type="range" id="lkSize" min="13" max="20" step="1" value="'+size+'"></label>'+
+    '<label class="field"><span>Corner roundness: <b id="lkRadiusV">'+radius+'</b>px</span><input type="range" id="lkRadius" min="0" max="24" step="1" value="'+radius+'"></label>'+
+    '<div class="actions"><button class="btn danger" id="lkReset" type="button">Reset to original</button><button class="btn primary" data-close type="button">Done</button></div>',
+    "var(--movie)"
+  );
+}
+function lookInput(e){
+  const t=e.target;
+  if(!t.matches("[data-c],#lkSize,#lkRadius,#lkDisplay,#lkBody")) return;
+  const look=readLook();
+  if(t.dataset.c){ const m=lookTarget(look); look[m]=Object.assign({},look[m]||{}); look[m][t.dataset.c]=t.value; }
+  else if(t.id==="lkSize"){ look.size=+t.value; $("#lkSizeV").textContent=t.value; }
+  else if(t.id==="lkRadius"){ look.radius=+t.value; $("#lkRadiusV").textContent=t.value; }
+  else if(t.id==="lkDisplay"){ look.display=t.value; }
+  else if(t.id==="lkBody"){ look.body=t.value; }
+  saveAndApply(look);
+}
+function lookClick(e){
+  const b=e.target.closest("[data-lk],#lkReset"); if(!b) return;
+  if(b.id==="lkReset"){ saveAndApply({}); paintLook(); toast("Back to the original look"); return; }
+  const look=readLook(), m=lookTarget(look);
+  if(b.dataset.lk==="mode"){ look.mode=b.dataset.v; }
+  else if(b.dataset.lk==="preset"){
+    look[m]=Object.assign({},look[m]||{});
+    LOOK_ACCENTS.forEach(k=>delete look[m][k]);
+    const p=LOOK_PRESETS[b.dataset.v]; if(p) Object.assign(look[m],p);
+  }
+  saveAndApply(look); paintLook();
+}
+$("#lookBtn").addEventListener("click",()=>paintLook());
+$("#sheet").addEventListener("input",lookInput);
+$("#sheet").addEventListener("click",lookClick);
+applyLook(readLook());
 
 /* ---------- maps (Leaflet + OpenStreetMap) ---------- */
 const dark=()=>window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;

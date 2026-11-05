@@ -24,6 +24,7 @@ It runs in the browser, on a computer or a phone. You can add it to your home sc
 - **Links:** save links on any item, such as the online recipe, the menu or the trailer.
 - **Stats:** how much your ratings match each person's, the biggest disagreements, rating distribution, the group's top items per section, what you did month by month, and what's waiting for your rating.
 - **Your own title:** on first sign-in the app asks you to name it. Anyone can rename it later by tapping the title at the top. The name is shared, so everyone sees the same one.
+- **Your own look:** tap the palette icon at the top right to change the colours (background, cards, text, and one colour per section and for the stars), pick a preset, choose light, dark or automatic mode, pick the heading and text fonts, and adjust the text size and corner roundness. The look is saved on each device only: it doesn't change anyone else's view, and "Reset to original" brings back the default.
 - **Google sign-in:** only the email addresses you list can get in.
 
 ## What you need
