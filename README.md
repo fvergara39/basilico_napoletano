@@ -1,4 +1,6 @@
-# 🌿 explove
+<p align="center">
+  <img src="assets/explove-logo.png" alt="explove" width="680">
+</p>
 
 A free, private web app for a group of people to keep shared lists of **movies, restaurants, places, activities and recipes**: what you want to do, what you've already done, and how you liked it.
 
